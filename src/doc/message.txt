@@ -17,7 +17,8 @@
 2、坐下广播消息：{"cmd":0x2003,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1}}
 3、准备广播消息：{"cmd":0x2005,"code":"0","message":"操作成功","data":{"userId":1}}
 4、起立广播消息：{"cmd":0x2007,"code":"0","message":"操作成功","data":{"userId":1}}
-5、开局广播消息：{"cmd":0x2009,"code":"0","message":"操作成功","data":{"currentGameRound":1, "users":[{"seatId":1,pokes":[],"isHog":1}]}}
+5、开局广播消息：{"cmd":0x2009,"code":"0","message":"操作成功","data":{"currentGameRound":1, "users":[{"seatId":1,"isHog":1}]}}
+5、deal  消息：{"cmd":0x200A,"code":"0","message":"操作成功","data":{"currentGameRound":1,"seatId":1,pokes":[],"isHog":1}}
 6、打牌广播消息：{"cmd":0x200B,"code":"0","message":"操作成功","data":{"userId":1,"seatId":1,"poke":"0x01"}}
 7、动作牌掩码消息：{"cmd":0x200D,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "choice":[{"type":1,"location"1:,"pokes":["0x01", "0x02"]},{"type":2,"pokes":["0x01", "0x02", "0x03"]}]}
 8、动作牌广播消息：{"cmd":0x200F,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "action":{"type":1,"pokes":["0x01", "0x02"]}}

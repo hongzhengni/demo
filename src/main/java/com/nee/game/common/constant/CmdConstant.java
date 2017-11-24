@@ -19,6 +19,7 @@ public class CmdConstant {
     public final static int BROADCAST_USER_READY = 0x2005; //准备广播消息
     public final static int BROADCAST_STAND_UP = 0x2007; //起立广播消息
     public final static int BROADCAST_START_GAME = 0x2009; //开局广播消息
+    public final static int REV_START_GAME = 0x200A; //开局DEAL消息
     public final static int BROADCAST_PLAY_CARD = 0x200B; //出牌广播消息
     public final static int REV_ACTION_CARD = 0x200D; //动作牌掩码消息
     public final static int BROADCAST_ACTION_CARD = 0x200F; //动作牌广播消息

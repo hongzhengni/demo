@@ -117,15 +117,33 @@ public class Table {
                 // all people are ready
                 if (readyCount() == maxCount) {
                     cardService.initCard(tableId);
-
-                    users.stream().filter(user -> user != null)
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("currentGameRound", gameRound);
+                    List<Map<String, Object>> userMaps = new ArrayList<>();
+                    users.stream().filter(Objects::nonNull)
                             .forEach(user -> {
-                                for (int i = 0; i < 13 + user.getHog(); i++) {
-                                    
-                                }
+                                Map<String, Object> userMap = new HashMap<>();
+                                userMap.put("userId", user.getUserId());
+                                userMap.put("seatId", user.getSeatId());
+                                userMap.put("hog", user.getHog());
+                                userMaps.add(userMap);
+                            });
+
+                    data.put("users", userMaps);
+                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_START_GAME, data);
+
+                    users.stream().filter(Objects::nonNull)
+                            .forEach(user -> {
+                                cardService.dealCards(user, 13);
+                                Map<String, Object> userMap = new HashMap<>();
+                                userMap.put("currentGameRound", gameRound);
+                                userMap.put("userId", user.getUserId());
+                                userMap.put("seatId", user.getSeatId());
+                                userMap.put("hog", user.getHog());
+                                userMap.put("pokes", user.getPokes());
+                                RevMsgUtils.revMsg(user.getNetSocket(), CmdConstant.REV_START_GAME, userMap);
                             });
                 }
-
 
             }
 
