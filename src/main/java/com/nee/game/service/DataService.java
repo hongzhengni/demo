@@ -188,7 +188,7 @@ class DataService {
         currentUser.setStatus(CommonConstant.USER_STATUS.READY);
 
 
-        //currentTable.tache = CommonConstant.TABLE_TACHE.READY;
+        currentTable.tache = CommonConstant.TABLE_TACHE.READY;
 
 
         Map<String, Object> data = new HashMap<>();
@@ -218,16 +218,16 @@ class DataService {
         }
     }
 
-    /**
-     * 离开房间
-     *
-     * @param netSocket socket
-     */
-    void standUp(NetSocket netSocket) {
-
-    }
 
     void playCard(NetSocket netSocket, Params params) {
+        User currentUser = socketUserMap.get(netSocket);
+        Table currentTable = tables.get(currentUser.getTableId());
+        Byte poke = params.getPoke();
+        currentTable.getUsers().stream().filter(Objects::nonNull)
+                .forEach(user ->{
+
+                });
+
 
     }
 
@@ -243,6 +243,15 @@ class DataService {
     }
 
     void huCard(NetSocket netSocket, Params params) {
+    }
+
+    /**
+     * 离开房间
+     *
+     * @param netSocket socket
+     */
+    void standUp(NetSocket netSocket) {
+
     }
 
     void closeConnect(NetSocket netSocket) {

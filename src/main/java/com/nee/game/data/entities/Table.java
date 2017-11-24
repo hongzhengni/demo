@@ -142,7 +142,9 @@ public class Table {
                                 userMap.put("hog", user.getHog());
                                 userMap.put("pokes", user.getPokes());
                                 RevMsgUtils.revMsg(user.getNetSocket(), CmdConstant.REV_START_GAME, userMap);
+                                user.setStatus(CommonConstant.USER_STATUS.PLAYING);
                             });
+                    tache = CommonConstant.TABLE_TACHE.PLAYING;
                 }
 
             }

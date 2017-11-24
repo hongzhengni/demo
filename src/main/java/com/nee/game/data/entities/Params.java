@@ -14,8 +14,7 @@ public class Params {
 
     private Integer seatId;
 
-
-    private Integer chargeType = 2;
+    private Byte poke;
 
     public Integer getTableId() {
         return tableId;
@@ -41,11 +40,11 @@ public class Params {
         this.seatId = seatId;
     }
 
-    public Integer getChargeType() {
-        return chargeType;
+    public Byte getPoke() {
+        return poke;
     }
 
-    public void setChargeType(Integer chargeType) {
-        this.chargeType = chargeType;
+    public void setPoke(Byte poke) {
+        this.poke = poke;
     }
 }

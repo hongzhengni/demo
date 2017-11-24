@@ -18,7 +18,7 @@ public interface CommonConstant {
         /** 准备*/
         int READY = 1;
         /** 发四张牌*/
-        int DEAL_4 = 2;
+        int PLAYING = 2;
         /** 抢庄*/
         int HOG = 3;
         /** 加注*/
