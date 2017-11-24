@@ -1,9 +1,12 @@
 package com.nee.game.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.nee.game.common.constant.CmdConstant;
+import com.nee.game.common.constant.CommonConstant;
+import com.nee.game.service.CardService;
+import com.nee.game.uitls.RevMsgUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 public class Table {
@@ -12,6 +15,8 @@ public class Table {
     private static final int maxGameRound = 3;
     private int tableId;
     private List<User> users;
+
+    private CardService cardService;
 
     @JsonIgnore
     public int tache = 0;
@@ -25,7 +30,7 @@ public class Table {
         return users;
     }
 
-    public void initUsers() {
+    private void initUsers() {
         users = new ArrayList<>();
         for (int i = 0; i < maxCount; i++) {
             users.add(i, null);
@@ -36,35 +41,36 @@ public class Table {
         return tableId;
     }
 
-    public Boolean isEnd() {
+    private Boolean isEnd() {
         return gameRound >= maxGameRound;
-    };
+    }
+
+    ;
+
+    private int readyCount() {
+        int i = 0;
+        for (User user : users) {
+            if (user != null && user.getStatus() == CommonConstant.USER_STATUS.READY)
+                i++;
+        }
+        return i;
+    }
 
     public boolean isFull() {
         return getRealCount() == maxCount;
     }
 
-    public Table(int tableId) {
+    public Table(int tableId, CardService cardService) {
         this.tableId = tableId;
         users = new ArrayList<>();
         for (int i = 0; i < maxCount; i++) {
             users.add(i, null);
         }
+        Timer timer = new Timer();
+        timer.schedule(new AutoExecuteTask(), 1000, 1000);
     }
 
-    public Boolean addUser(User user) {
-        user.setJoinTableTime(0);
-        for (int i = 0; i < maxCount; i++) {
-            if (users.get(i) == null) {
-                user.setSeatId(i);
-                users.set(i, user);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public int getRealCount() {
+    private int getRealCount() {
         int count = 0;
         for (User user : users) {
             if (user != null) {
@@ -89,4 +95,42 @@ public class Table {
     public static int getMaxGameRound() {
         return maxGameRound;
     }
+
+    private class AutoExecuteTask extends TimerTask {
+
+        @Override
+        public void run() {
+            // TODO all people offline
+
+            if (!isFull() || isEnd()) {
+                return;
+            }
+            if (tache == CommonConstant.TABLE_TACHE.READY) {
+
+                // offline user auto ready
+                users.stream().filter(user -> user.getNetSocket() == null).forEach(user -> {
+                    user.setStatus(CommonConstant.USER_STATUS.READY);
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("userId", user.getUserId());
+                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_READY, map);
+                });
+                // all people are ready
+                if (readyCount() == maxCount) {
+                    cardService.initCard(tableId);
+
+                    users.stream().filter(user -> user != null)
+                            .forEach(user -> {
+                                for (int i = 0; i < 13 + user.getHog(); i++) {
+                                    
+                                }
+                            });
+                }
+
+
+            }
+
+        }
+    }
+
+
 }

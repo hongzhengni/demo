@@ -22,8 +22,8 @@ public class InstantiationTracingBeanPostProcessor implements ApplicationListene
     public void onApplicationEvent(ContextRefreshedEvent event) {
         System.out.println("============spring 初始化完成===========");
 
-        TimerTask timerTask = new DataService().new LoadRobotTask(mysqlClient);
-        Timer timer = new Timer();
+        /*TimerTask timerTask = new DataService().new LoadRobotTask(mysqlClient);
+        Timer timer = new Timer();*/
         //timer.schedule(timerTask, 1000, 10000);
 
         System.out.println("============spring 初始化完成===========");

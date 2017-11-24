@@ -32,6 +32,8 @@ public class User implements Comparable<User> {
     @JsonIgnore
     private NetSocket netSocket;
 
+    private int hog = 0;
+
     private long joinTableTime;
 
     /**
@@ -172,6 +174,14 @@ public class User implements Comparable<User> {
 
     public int getOriginalMoney() {
         return originalMoney;
+    }
+
+    public int getHog() {
+        return hog;
+    }
+
+    public void setHog(int hog) {
+        this.hog = hog;
     }
 
     public void setOriginalMoney(int originalMoney) {
