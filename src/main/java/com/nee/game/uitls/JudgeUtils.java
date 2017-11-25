@@ -4,5 +4,8 @@ public class JudgeUtils {
 
     public static boolean isSevenPair() {
 
+        return false;
     }
+
+
 }

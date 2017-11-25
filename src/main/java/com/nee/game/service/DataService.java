@@ -228,6 +228,11 @@ class DataService {
 
                 });
 
+        
+        currentTable.getUsers().stream().filter(Objects::nonNull)
+                .forEach(user ->{
+
+                });
 
     }
 
@@ -235,14 +240,16 @@ class DataService {
 
     }
 
-    void gangCard(NetSocket netSocket, Params params) throws InterruptedException {
+    void gangCard(NetSocket netSocket, Params params) {
 
     }
 
     void chiCard(NetSocket netSocket, Params params) {
+
     }
 
     void huCard(NetSocket netSocket, Params params) {
+
     }
 
     /**

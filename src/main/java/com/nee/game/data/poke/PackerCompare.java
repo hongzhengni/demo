@@ -9,7 +9,7 @@ package com.nee.game.data.poke;
 public class PackerCompare {
 	
 	//得到赢得人
-	public static UserPacket geWin(UserPacket up1,UserPacket up2){
+	public static UserPokes geWin(UserPokes up1, UserPokes up2){
 		if(!up1.isBanker()^up2.isBanker()){
 			try {
 				throw new Exception("两个用户,必须一个是庄家、一个是用户");
@@ -23,7 +23,7 @@ public class PackerCompare {
 	
 	
 	//比较两个人的牌类型的大小，并计算输赢
-	private static UserPacket CompareType(UserPacket up1,UserPacket up2){
+	private static UserPokes CompareType(UserPokes up1, UserPokes up2){
 		if(up1.type==up2.type){//当手牌类型相同时
 			//如果类型是牛1或者牛2那么庄家赢
 			if(up1.type==1||up1.type==2){
@@ -46,7 +46,7 @@ public class PackerCompare {
 	}
 	
 	//比较牌点
-	private static void compareNum(UserPacket up1,UserPacket up2){
+	private static void compareNum(UserPokes up1, UserPokes up2){
 		Packer[] newP1=Packer.sort(up1.getPs());
 		Packer[] newP2=Packer.sort(up1.getPs());
 		//比较最大牌的大小

@@ -3,9 +3,6 @@ package com.nee.game.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nee.game.common.A0Json;
-import com.nee.game.data.poke.Color;
-import com.nee.game.data.poke.Num;
-import com.nee.game.data.poke.Packer;
 import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
 
