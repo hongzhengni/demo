@@ -9,6 +9,7 @@ import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.data.entities.Table;
 import com.nee.game.data.entities.User;
+import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.net.NetSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -228,11 +229,16 @@ class DataService {
 
                 });
 
-        
-        currentTable.getUsers().stream().filter(Objects::nonNull)
-                .forEach(user ->{
 
-                });
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", currentUser.getUserId());
+        data.put("seatId", currentUser.getSeatId());
+        data.put("poke", poke);
+
+
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
+
+         
 
     }
 
