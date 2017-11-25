@@ -37,7 +37,7 @@ public class CardService {
         });
     }
 
-    private Byte dealCard(int tableId) {
+    public Byte dealCard(int tableId) {
 
         return Byte.valueOf(redisService.lpop(prex + tableId));
     }

@@ -3,10 +3,13 @@ package com.nee.game.data.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nee.game.common.A0Json;
+import com.nee.game.common.constant.CmdConstant;
+import com.nee.game.service.DataService;
+import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
 
-import java.util.List;
+import java.util.*;
 
 public class User implements Comparable<User> {
     private Integer userId;
@@ -21,9 +24,6 @@ public class User implements Comparable<User> {
     private int seatId;
     private int tableId;
 
-    @JsonIgnore
-    public boolean robot = false;
-    //@JsonIgnore
     private List<Byte> pokes;
 
     @JsonIgnore
@@ -31,13 +31,12 @@ public class User implements Comparable<User> {
 
     private int hog = 0;
 
-    private long joinTableTime;
 
     /**
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
      **/
     @JsonIgnore
-    public int gameCount = 0;
+    private int gameCount = 0;
     @JsonIgnore
     public int winCount = 0;
     @JsonIgnore
@@ -55,7 +54,6 @@ public class User implements Comparable<User> {
         this.userId = userId;
         this.nick = nick;
         this.setOriginalMoney(originalMoney);
-        this.robot = robot;
     }
 
     public void clear() {
@@ -111,7 +109,7 @@ public class User implements Comparable<User> {
         return seatId;
     }
 
-    public void setSeatId(int seatId) {
+    void setSeatId(int seatId) {
         this.seatId = seatId;
     }
 
@@ -119,12 +117,8 @@ public class User implements Comparable<User> {
         return tableId;
     }
 
-    public void setTableId(Integer tableId) {
+    void setTableId(Integer tableId) {
         this.tableId = tableId;
-    }
-
-    void setJoinTableTime(long joinTableTime) {
-        this.joinTableTime = joinTableTime;
     }
 
     public NetSocket getNetSocket() {
@@ -135,7 +129,7 @@ public class User implements Comparable<User> {
         this.netSocket = netSocket;
     }
 
-    public List<Byte> getPokes() {
+    List<Byte> getPokes() {
         return pokes;
     }
 
@@ -143,18 +137,6 @@ public class User implements Comparable<User> {
         this.pokes = pokes;
     }
 
-    public Packer[] packers() {
-        Packer[] packers = new Packer[5];
-        System.out.println("pokes->:" + A0Json.encode(pokes));
-        for (int i = 0; i < pokes.size(); i++) {
-            Byte poke = pokes.get(i);
-            int num = poke % 16;
-            int color = poke / 16;
-            packers[i] = new Packer(Num.getEnumByNum(num), Color.getColorByValue(color));
-        }
-
-        return packers;
-    }
 
     @Override
     public int compareTo(User o) {
@@ -184,4 +166,62 @@ public class User implements Comparable<User> {
     public void setOriginalMoney(int originalMoney) {
         this.originalMoney = originalMoney;
     }
+
+
+
+
+    public void playCard(Byte poke) {
+
+        Table currentTable = DataService.tables.get(tableId);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("seatId", seatId);
+        data.put("poke", poke);
+
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
+
+        currentTable.getUsers().stream().filter(Objects::nonNull)
+                .forEach(user ->{
+
+                });
+
+        currentTable.nextPeople(userId);
+    }
+
+    public void penCard(List<Byte> pokes) {
+        Table currentTable = DataService.tables.get(tableId);
+
+
+    }
+
+    public void standUp() {
+
+        Table currentTable = DataService.tables.get(tableId);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("seatId", seatId);
+
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_STAND_UP, data);
+
+        clear();
+    }
+
+
+    void autoPlay() {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (pokes.size() == 14) {
+                    Byte poke = pokes.remove(13);
+                    playCard(poke);
+                }
+            }
+        }, 5000);
+
+    }
+
 }
+

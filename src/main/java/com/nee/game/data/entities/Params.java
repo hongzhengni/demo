@@ -1,6 +1,8 @@
 package com.nee.game.data.entities;
 
 
+import java.util.List;
+
 /**
  * @Author: heikki.
  * @Description:
@@ -15,6 +17,8 @@ public class Params {
     private Integer seatId;
 
     private Byte poke;
+
+    private List<Byte> pokes;
 
     public Integer getTableId() {
         return tableId;
@@ -46,5 +50,13 @@ public class Params {
 
     public void setPoke(Byte poke) {
         this.poke = poke;
+    }
+
+    public List<Byte> getPokes() {
+        return pokes;
+    }
+
+    public void setPokes(List<Byte> pokes) {
+        this.pokes = pokes;
     }
 }

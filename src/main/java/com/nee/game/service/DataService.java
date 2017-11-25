@@ -5,11 +5,11 @@ import com.nee.game.common.PokeData;
 import com.nee.game.common.Result;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
+import com.nee.game.common.constant.ErrorCodeEnum;
 import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.data.entities.Table;
 import com.nee.game.data.entities.User;
-import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.net.NetSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,13 +18,13 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
-class DataService {
+public class DataService {
     @Autowired
     private RedisService redisService;
     @Autowired
     private CardService cardService;
 
-    private static Map<Integer, Table> tables = new HashMap<>();
+    public static Map<Integer, Table> tables = new HashMap<>();
     private static Map<Integer, User> users = new HashMap<>();
     private static Map<NetSocket, User> socketUserMap = new HashMap<>();
 
@@ -123,14 +123,7 @@ class DataService {
                 throw new BusinessException("table is full");
             }
 
-            for (int i = 0; i < 4; i++) {
-                if (currentTable.get().getUsers().get(i) == null) {
-                    currentUser.setSeatId(i);
-                    currentUser.setTableId(currentTable.get().getTableId());
-                    currentTable.get().getUsers().set(i, currentUser);
-                    break;
-                }
-            }
+            currentTable.get().addUser(currentUser);
         } else {
             currentTable.set(tables.get(tableId));
             if (currentTable.get() == null) {
@@ -222,40 +215,45 @@ class DataService {
 
     void playCard(NetSocket netSocket, Params params) {
         User currentUser = socketUserMap.get(netSocket);
-        Table currentTable = tables.get(currentUser.getTableId());
         Byte poke = params.getPoke();
-        currentTable.getUsers().stream().filter(Objects::nonNull)
-                .forEach(user ->{
 
-                });
-
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", currentUser.getUserId());
-        data.put("seatId", currentUser.getSeatId());
-        data.put("poke", poke);
-
-
-        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
-
-         
+        currentUser.playCard(poke);
 
     }
 
     void penCard(NetSocket netSocket, Params params) {
 
+        User currentUser = socketUserMap.get(netSocket);
+        List<Byte> pokes = params.getPokes();
+        if (pokes.size() != 3) {
+            throw new BusinessException(ErrorCodeEnum.ERROR_PARAM);
+        }
+
+        currentUser.penCard(pokes);
     }
 
     void gangCard(NetSocket netSocket, Params params) {
 
+        User currentUser = socketUserMap.get(netSocket);
+        Byte poke = params.getPoke();
+
+        currentUser.playCard(poke);
     }
 
     void chiCard(NetSocket netSocket, Params params) {
 
+        User currentUser = socketUserMap.get(netSocket);
+        Byte poke = params.getPoke();
+
+        currentUser.playCard(poke);
     }
 
     void huCard(NetSocket netSocket, Params params) {
 
+        User currentUser = socketUserMap.get(netSocket);
+        Byte poke = params.getPoke();
+
+        currentUser.playCard(poke);
     }
 
     /**
@@ -265,6 +263,9 @@ class DataService {
      */
     void standUp(NetSocket netSocket) {
 
+        User currentUser = socketUserMap.get(netSocket);
+
+        currentUser.standUp();
     }
 
     void closeConnect(NetSocket netSocket) {

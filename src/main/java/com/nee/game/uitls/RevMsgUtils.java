@@ -12,12 +12,14 @@ import java.util.List;
  */
 public class RevMsgUtils {
 
-    public static void revMsg(NetSocket socket, Integer cmd, Object data) {
+    public static void revMsg(User user, Integer cmd, Object data) {
+        if (user.getNetSocket() == null)
+            return;
         Result result = new Result.Builder()
                 .setCmd(cmd)
                 .setData(data)
                 .build();
-        socket.write(A0Json.encode(result));
+        user.getNetSocket().write(A0Json.encode(result));
     }
 
     public static void revMsg(List<User> users, Integer cmd, Object data) {
@@ -26,6 +28,17 @@ public class RevMsgUtils {
                 .setData(data)
                 .build();
         users.stream().filter(user -> user != null && user.getNetSocket() != null)
+                .forEach(user -> {
+                    user.getNetSocket().write(A0Json.encode(result));
+                });
+    }
+
+    public static void revMsg(List<User> users, User currentUser, Integer cmd, Object data) {
+        Result result = new Result.Builder()
+                .setCmd(cmd)
+                .setData(data)
+                .build();
+        users.stream().filter(user -> user != null && currentUser != user && user.getNetSocket() != null)
                 .forEach(user -> {
                     user.getNetSocket().write(A0Json.encode(result));
                 });

@@ -8,6 +8,8 @@ import com.nee.game.uitls.RevMsgUtils;
 
 import java.util.*;
 
+import static com.nee.game.common.constant.CmdConstant.BROADCAST_CATCH_CARD;
+
 
 public class Table {
 
@@ -37,6 +39,8 @@ public class Table {
         }
     }
 
+
+
     public int getTableId() {
         return tableId;
     }
@@ -45,7 +49,16 @@ public class Table {
         return gameRound >= maxGameRound;
     }
 
-    ;
+    public void addUser (User user) {
+        for (int i = 0; i < 4; i++) {
+            if (users.get(i) == null) {
+                user.setSeatId(i);
+                user.setTableId(tableId);
+                users.set(i, user);
+                break;
+            }
+        }
+    }
 
     private int readyCount() {
         int i = 0;
@@ -61,6 +74,7 @@ public class Table {
     }
 
     public Table(int tableId, CardService cardService) {
+        this.cardService = cardService;
         this.tableId = tableId;
         users = new ArrayList<>();
         for (int i = 0; i < maxCount; i++) {
@@ -141,7 +155,7 @@ public class Table {
                                 userMap.put("seatId", user.getSeatId());
                                 userMap.put("hog", user.getHog());
                                 userMap.put("pokes", user.getPokes());
-                                RevMsgUtils.revMsg(user.getNetSocket(), CmdConstant.REV_START_GAME, userMap);
+                                RevMsgUtils.revMsg(user, CmdConstant.REV_START_GAME, userMap);
                                 user.setStatus(CommonConstant.USER_STATUS.PLAYING);
                             });
                     tache = CommonConstant.TABLE_TACHE.PLAYING;
@@ -152,5 +166,33 @@ public class Table {
         }
     }
 
+    void nextPeople(int userId) {
+        User nextUser = getNextUser(userId);
+        if (nextUser.getPokes().size() > 13) {
+            return;
+        }
+
+        Byte poke = cardService.dealCard(tableId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", nextUser.getUserId());
+        data.put("seatId", nextUser.getSeatId());
+        RevMsgUtils.revMsg(users, nextUser, BROADCAST_CATCH_CARD, data);
+
+        nextUser.getPokes().add(poke);
+        data.put("poke", poke);
+
+        RevMsgUtils.revMsg(nextUser, BROADCAST_CATCH_CARD, data);
+
+        nextUser.autoPlay();
+    }
+
+    private User getNextUser(int userId) {
+        int nextActionSeatId = 0;
+        if (userId < 3) {
+            nextActionSeatId = userId + 1;
+        }
+
+        return users.get(nextActionSeatId);
+    }
 
 }
