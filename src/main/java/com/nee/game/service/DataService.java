@@ -1,8 +1,5 @@
 package com.nee.game.service;
 
-import com.nee.game.common.A0Json;
-import com.nee.game.common.PokeData;
-import com.nee.game.common.Result;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.common.constant.ErrorCodeEnum;
@@ -105,7 +102,7 @@ public class DataService {
             throw new BusinessException("请重新登录");
         }
 
-        int radio = params.getRadio();
+        int radio = params.getRatio();
         int maxGround = params.getMaxGround();
 
         int tableId = tables.size();
@@ -229,9 +226,10 @@ public class DataService {
     void chiCard(NetSocket netSocket, Params params) {
 
         User currentUser = socketUserMap.get(netSocket);
-        Byte poke = params.getPoke();
+        List<Byte> pokes = params.getPokes();
+        int location = params.getLocation();
 
-        currentUser.playCard(poke);
+        currentUser.chiCard(pokes, location);
     }
 
     void huCard(NetSocket netSocket, Params params) {

@@ -3,11 +3,6 @@ package com.nee.game.data.entities;
 
 import java.util.List;
 
-/**
- * @Author: heikki.
- * @Description:
- * @DATE: 下午9:23 17/10/30.
- */
 public class Params {
 
     private Integer tableId;
@@ -20,9 +15,11 @@ public class Params {
 
     private List<Byte> pokes;
 
-    private int radio;
+    private int ratio;
 
     private int maxGround;
+
+    private int location;
 
     public Integer getTableId() {
         return tableId;
@@ -64,12 +61,20 @@ public class Params {
         this.pokes = pokes;
     }
 
-    public void setRadio(int radio) {
-        this.radio = radio;
+    public void setRatio(int ratio) {
+        this.ratio = ratio;
     }
 
-    public int getRadio() {
-        return radio;
+    public int getRatio() {
+        return ratio;
+    }
+
+    public int getLocation() {
+        return location;
+    }
+
+    public void setLocation(int location) {
+        this.location = location;
     }
 
     public void setMaxGround(int maxGround) {

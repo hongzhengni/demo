@@ -41,7 +41,6 @@ public class Table {
     }
 
 
-
     public int getTableId() {
         return tableId;
     }
@@ -50,7 +49,7 @@ public class Table {
         return gameRound >= maxGameRound;
     }
 
-    public void addUser (User user) {
+    public void addUser(User user) {
         for (int i = 0; i < 4; i++) {
             if (users.get(i) == null) {
                 user.setSeatId(i);
@@ -181,22 +180,8 @@ public class Table {
 
     void nextPeople(int userId) {
         User nextUser = getNextUser(userId);
-        if (nextUser.getPokes().size() > 13) {
-            return;
-        }
 
-        Byte poke = cardService.dealCard(tableId);
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", nextUser.getUserId());
-        data.put("seatId", nextUser.getSeatId());
-        RevMsgUtils.revMsg(users, nextUser, BROADCAST_CATCH_CARD, data);
-
-        nextUser.getPokes().add(poke);
-        data.put("poke", poke);
-
-        RevMsgUtils.revMsg(nextUser, BROADCAST_CATCH_CARD, data);
-
-        nextUser.autoPlay();
+        nextUser.catchCard();
     }
 
     private User getNextUser(int userId) {

@@ -7,7 +7,7 @@
 6、打牌消息：{"cmd":0x1009, "params":{"poke":"0x01"}}
 7、碰牌消息：{"cmd":0x100B, "params":{"pokes":["0x01", "0x02", "0x03"]}}
 8、杠牌消息：{"cmd":0x100D, "params":{"poke":"0x01", "type":1}}
-9、吃牌消息：{"cmd":0x101F, "params":{"pokes":["0x01", "0x02", "0x03"]}}
+9、吃牌消息：{"cmd":0x101F, "params":{"pokes":["0x01", "0x02", "0x03"], "location":1}}
 10、胡牌消息：{"cmd":0x1021, "params":{"poke":"0x01"}}
 
 
