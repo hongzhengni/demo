@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nee.game.common.A0Json;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
+import com.nee.game.service.CardService;
 import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
@@ -13,6 +14,8 @@ import io.vertx.core.net.NetSocket;
 import java.util.*;
 
 public class User implements Comparable<User> {
+
+    private CardService cardService;
     private Integer userId;
     private String nick;
     private int money = 1000;
@@ -39,8 +42,6 @@ public class User implements Comparable<User> {
     @JsonIgnore
     private int gameCount = 0;
     @JsonIgnore
-    public int winCount = 0;
-    @JsonIgnore
     public boolean offline = false;
     @JsonIgnore
     public List<Byte> chi_pokes;
@@ -53,14 +54,15 @@ public class User implements Comparable<User> {
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
      **/
 
-    public User() {
-
+    public User(CardService cardService) {
+        this.cardService = cardService;
     }
 
-    public User(int userId, String nick, int originalMoney, boolean robot) {
+    public User(int userId, String nick, int originalMoney, CardService cardService) {
         this.userId = userId;
         this.nick = nick;
         this.setOriginalMoney(originalMoney);
+        this.cardService = cardService;
     }
 
     public void clear() {
@@ -188,6 +190,10 @@ public class User implements Comparable<User> {
         this.originalMoney = originalMoney;
     }
 
+    public void touchCard() {
+
+    }
+
     public void playCard(Byte poke) {
 
         Table currentTable = DataService.tables.get(tableId);
@@ -231,6 +237,29 @@ public class User implements Comparable<User> {
 
     }
 
+    public void gangCard(List<Byte> pokes) {
+        Table currentTable = DataService.tables.get(tableId);
+        if (pen_pokes == null) {
+            pen_pokes = pokes;
+        } else {
+            pen_pokes.addAll(pokes);
+        }
+        this.pokes.remove(pokes.get(0));
+        this.pokes.remove(pokes.get(0));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("seatId", seatId);
+        Map<String, Object> actionMap = new HashMap<>();
+        actionMap.put("type", CommonConstant.ACTION_TYPE.GANG);
+        actionMap.put("pokes", pokes);
+        data.put("action", actionMap);
+
+        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_ACTION_CARD, data);
+
+        autoPlay();
+    }
+
     public void standUp() {
 
         Table currentTable = DataService.tables.get(tableId);
@@ -258,6 +287,7 @@ public class User implements Comparable<User> {
         }, 5000);
 
     }
+
 
 }
 

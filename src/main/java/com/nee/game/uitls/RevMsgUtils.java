@@ -5,6 +5,7 @@ import com.nee.game.common.Result;
 import com.nee.game.data.entities.User;
 import io.vertx.core.net.NetSocket;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -22,7 +23,7 @@ public class RevMsgUtils {
         user.getNetSocket().write(A0Json.encode(result));
     }
 
-    public static void revMsg(List<User> users, Integer cmd, Object data) {
+    public static void revMsg(Collection<User> users, Integer cmd, Object data) {
         Result result = new Result.Builder()
                 .setCmd(cmd)
                 .setData(data)

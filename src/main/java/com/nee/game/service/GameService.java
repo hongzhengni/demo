@@ -25,7 +25,7 @@ public class GameService {
 
     public void handle(NetSocket netSocket) {
 
-        System.out.println("Incoming connection!");
+        System.out.println("Mahjong incoming connection!");
         netSocket.handler(buffer -> {
             try {
                 Request<Params> request = A0Json.decodeValue(buffer.getString(0, buffer.length()),
@@ -79,7 +79,7 @@ public class GameService {
             }
 
         }).closeHandler(aVoid -> {
-            System.out.println("client closed");
+            System.out.println("client closed mahjong");
             dataService.closeConnect(netSocket);
         });
     }

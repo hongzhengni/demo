@@ -15,7 +15,7 @@ public class CmdConstant {
 
     public final static int REV_HALL_INFO = 0x2000; //大厅信息
     public final static int REV_ROOM_INFO = 0x2001; //房间信息
-    public final static int REV_CREATE_ROOM = 0x2002; //
+    public final static int BROADCAST_CREATE_ROOM = 0x2002; //
     public final static int BROADCAST_SIT_DOWN = 0x2003; //坐下广播消息
     public final static int BROADCAST_USER_READY = 0x2005; //准备广播消息
     public final static int BROADCAST_STAND_UP = 0x2007; //起立广播消息

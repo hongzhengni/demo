@@ -18,8 +18,6 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.nee.game.common.constant.CmdConstant.REV_CREATE_ROOM;
-
 @Component
 public class DataService {
     @Autowired
@@ -61,7 +59,7 @@ public class DataService {
         int userId = params.getUserId();
         User u;
         if (users.get(userId) == null) {
-            u = new User();
+            u = new User(cardService);
             u.setUserId(params.getUserId());
             u.setNick("测试用户" + userId);
             u.setMoney(1000);
@@ -96,13 +94,9 @@ public class DataService {
 
         data.put("tables", tableMaps);
 
-        Result result = new Result.Builder()
-                .setCmd(CmdConstant.REV_HALL_INFO)
-                .setData(data)
-                .build();
-        u.getNetSocket().write(A0Json.encode(result));
-
         socketUserMap.put(netSocket, u);
+
+        RevMsgUtils.revMsg(u, CmdConstant.REV_HALL_INFO, data);
     }
 
     void createRoom(NetSocket netSocket, Params params) {
@@ -123,8 +117,9 @@ public class DataService {
 
         Map<String, Integer> data = new HashMap<>();
         data.put("tableId", tableId);
+        data.put("userId", currentUser.getUserId());
 
-        RevMsgUtils.revMsg(currentUser, CmdConstant.REV_CREATE_ROOM, data);
+        RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_CREATE_ROOM, data);
     }
 
     void sitDown(NetSocket netSocket, Params params) {
@@ -176,27 +171,14 @@ public class DataService {
                 });
         data.put("users", userList);
 
-        // return room info
-        netSocket.write(A0Json.encode(new Result.Builder()
-                .setCmd(CmdConstant.REV_ROOM_INFO)
-                .setData(data)
-                .build()));
+        RevMsgUtils.revMsg(currentUser, CmdConstant.REV_ROOM_INFO, data);
 
         //广播消息
         Map<String, Object> map = new HashMap<>();
         map.put("userId", currentUser.getUserId());
         map.put("seatId", currentUser.getSeatId());
-        Result result = new Result.Builder()
-                .setCmd(CmdConstant.BROADCAST_SIT_DOWN)
-                .setData(map)
-                .build();
 
-        users.values().forEach(user -> {
-            if (user.getNetSocket() != null) {
-                user.getNetSocket().write(A0Json.encode(result));
-            }
-        });
-
+        RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_SIT_DOWN, map);
     }
 
     //玩家准备
@@ -206,35 +188,12 @@ public class DataService {
         Table currentTable = tables.get(currentUser.getTableId());
         currentUser.setStatus(CommonConstant.USER_STATUS.READY);
 
-
         currentTable.tache = CommonConstant.TABLE_TACHE.READY;
-
 
         Map<String, Object> data = new HashMap<>();
         data.put("userId", currentUser.getUserId());
 
-        Result result = new Result.Builder()
-                .setCmd(CmdConstant.BROADCAST_USER_READY)
-                .setData(data)
-                .build();
-
-        final List<User> readyUsers = new ArrayList<>();
-        currentTable.getUsers().stream()
-                .filter(Objects::nonNull /*&& user != currentUser*/)
-                .filter(user -> user.getNetSocket() != null)
-                .forEach(user -> {
-                    if (user.getStatus() == CommonConstant.USER_STATUS.READY) {
-                        readyUsers.add(user);
-                    }
-                    user.getNetSocket().write(A0Json.encode(result));
-                });
-
-        if (readyUsers.size() == currentTable.getMaxGameRound()) {
-            List<Byte> pokes = Arrays.asList(PokeData.GameLogic);
-
-            Collections.shuffle(pokes);
-            pokes.forEach(poke -> redisService.lpush("table-" + currentTable.getTableId(), poke));
-        }
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_USER_READY, data);
     }
 
 
@@ -243,7 +202,6 @@ public class DataService {
         Byte poke = params.getPoke();
 
         currentUser.playCard(poke);
-
     }
 
     void penCard(NetSocket netSocket, Params params) {
@@ -260,9 +218,12 @@ public class DataService {
     void gangCard(NetSocket netSocket, Params params) {
 
         User currentUser = socketUserMap.get(netSocket);
-        Byte poke = params.getPoke();
+        List<Byte> pokes = params.getPokes();
+        if (pokes.size() != 4) {
+            throw new BusinessException(ErrorCodeEnum.ERROR_PARAM);
+        }
 
-        currentUser.playCard(poke);
+        currentUser.gangCard(pokes);
     }
 
     void chiCard(NetSocket netSocket, Params params) {
