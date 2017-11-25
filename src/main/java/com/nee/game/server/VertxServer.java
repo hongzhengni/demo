@@ -28,7 +28,7 @@ public class VertxServer {
         NetServer server = vertx.createNetServer();
         server.connectHandler(gameService::handle);
 
-        server.listen(9001);
+        server.listen(8200);
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
@@ -37,7 +37,7 @@ public class VertxServer {
                 .blockingHandler(gameService::execute);
 
 
-        vertx.createHttpServer().requestHandler(router::accept).listen(8001);
+        vertx.createHttpServer().requestHandler(router::accept).listen(8201);
     }
 
 
