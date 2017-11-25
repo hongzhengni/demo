@@ -20,6 +20,10 @@ public class Params {
 
     private List<Byte> pokes;
 
+    private int radio;
+
+    private int maxGround;
+
     public Integer getTableId() {
         return tableId;
     }
@@ -58,5 +62,21 @@ public class Params {
 
     public void setPokes(List<Byte> pokes) {
         this.pokes = pokes;
+    }
+
+    public void setRadio(int radio) {
+        this.radio = radio;
+    }
+
+    public int getRadio() {
+        return radio;
+    }
+
+    public void setMaxGround(int maxGround) {
+        this.maxGround = maxGround;
+    }
+
+    public int getMaxGround() {
+        return maxGround;
     }
 }

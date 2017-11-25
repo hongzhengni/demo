@@ -14,7 +14,8 @@ import static com.nee.game.common.constant.CmdConstant.BROADCAST_CATCH_CARD;
 public class Table {
 
     private static final int maxCount = 4;
-    private static final int maxGameRound = 3;
+    private int maxGameRound = 3;
+    private int radio = 8;
     private int tableId;
     private List<User> users;
 
@@ -106,8 +107,20 @@ public class Table {
         this.gameRound++;
     }
 
-    public static int getMaxGameRound() {
+    public void setMaxGameRound(int maxGameRound) {
+        this.maxGameRound = maxGameRound;
+    }
+
+    public int getMaxGameRound() {
         return maxGameRound;
+    }
+
+    public void setRadio(int radio) {
+        this.radio = radio;
+    }
+
+    public int getRadio() {
+        return radio;
     }
 
     private class AutoExecuteTask extends TimerTask {

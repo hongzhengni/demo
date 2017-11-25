@@ -3,6 +3,7 @@ package com.nee.game.common.constant;
 public class CmdConstant {
 
     public final static int LOGIN_HALL = 0x1001;//登陆大厅
+    public final static int CREATE_ROOM = 0x1002; //
     public final static int SIT_DOWN = 0x1003; //坐下
     public final static int READY = 0x1005; //准备
     public final static int STAND_UP = 0x1007; //起立
@@ -14,7 +15,7 @@ public class CmdConstant {
 
     public final static int REV_HALL_INFO = 0x2000; //大厅信息
     public final static int REV_ROOM_INFO = 0x2001; //房间信息
-    public final static int BROADCAST_JOIN_TABLE = 0x2002; //广播房间信息
+    public final static int REV_CREATE_ROOM = 0x2002; //
     public final static int BROADCAST_SIT_DOWN = 0x2003; //坐下广播消息
     public final static int BROADCAST_USER_READY = 0x2005; //准备广播消息
     public final static int BROADCAST_STAND_UP = 0x2007; //起立广播消息

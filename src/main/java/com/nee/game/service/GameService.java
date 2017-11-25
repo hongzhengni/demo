@@ -38,6 +38,9 @@ public class GameService {
                     case CmdConstant.LOGIN_HALL:
                         dataService.loginHall(netSocket, request.getParams());
                         break;
+                    case CmdConstant.CREATE_ROOM:
+                        dataService.createRoom(netSocket, request.getParams());
+                        break;
                     case CmdConstant.SIT_DOWN:
                         dataService.sitDown(netSocket, request.getParams());
                         break;

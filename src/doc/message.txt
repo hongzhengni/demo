@@ -1,19 +1,21 @@
 客户端发送给服务器消息
 1、进入大厅：{"cmd":0x1001,"params":{"userId":"1"}}
-2、坐下消息：{"cmd":0x1003,"params":{"tableId":1, "seatId":2}}
-3、准备消息：{"cmd":0x1005}
-4、起立消息：{"cmd":0x1007}
-5、打牌消息：{"cmd":0x1009, "params":{"poke":"0x01"}}
-6、碰牌消息：{"cmd":0x100B, "params":{"pokes":["0x01", "0x02", "0x03"]}}
-7、杠牌消息：{"cmd":0x100D, "params":{"poke":"0x01", "type":1}}
-8、吃牌消息：{"cmd":0x101F, "params":{"pokes":["0x01", "0x02", "0x03"]}}
-9、胡牌消息：{"cmd":0x1021, "params":{"poke":"0x01"}}
+2、create room：{"cmd":0x1002,"params":{"radio":8, "maxGround":3}}
+3、坐下消息：{"cmd":0x1003,"params":{"tableId":1, "seatId":2}}
+4、准备消息：{"cmd":0x1005}
+5、起立消息：{"cmd":0x1007}
+6、打牌消息：{"cmd":0x1009, "params":{"poke":"0x01"}}
+7、碰牌消息：{"cmd":0x100B, "params":{"pokes":["0x01", "0x02", "0x03"]}}
+8、杠牌消息：{"cmd":0x100D, "params":{"poke":"0x01", "type":1}}
+9、吃牌消息：{"cmd":0x101F, "params":{"pokes":["0x01", "0x02", "0x03"]}}
+10、胡牌消息：{"cmd":0x1021, "params":{"poke":"0x01"}}
 
 
 
 
 服务器发送给客户端的消息
 1、房间信息：{"cmd":0x2001,"code":"0","message":"操作成功","data":{"tableId":1,"tableNo":"123456", "maxGameRound":3, "currentGameRound" :2, "users":{"nick":"heikki","money":1000,"status":0,"seatId":0}}
+2、create room：{"cmd":0x2002,"code":"0","message":"操作成功","data":{"tableId":1}}
 2、坐下广播消息：{"cmd":0x2003,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1}}
 3、准备广播消息：{"cmd":0x2005,"code":"0","message":"操作成功","data":{"userId":1}}
 4、起立广播消息：{"cmd":0x2007,"code":"0","message":"操作成功","data":{"userId":1}}

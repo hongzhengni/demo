@@ -19,10 +19,6 @@ public interface CommonConstant {
         int READY = 1;
         /** 发四张牌*/
         int PLAYING = 2;
-        /** 抢庄*/
-        int HOG = 3;
-        /** 加注*/
-        int ADD_MONEY = 4;
         /** 发一张牌*/
         int DEAL_1 = 5;
         /** 比牌开始*/
@@ -31,6 +27,12 @@ public interface CommonConstant {
         int COMPARE_END = 7;
         /** 结算*/
         int SETTLE = 8;
+    }
 
+    interface ACTION_TYPE {
+        int CHI = 1;
+        int PEN = 2;
+        int GANG = 3;
+        int HU = 4;
     }
 }

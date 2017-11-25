@@ -10,12 +10,15 @@ import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.data.entities.Table;
 import com.nee.game.data.entities.User;
+import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.net.NetSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.nee.game.common.constant.CmdConstant.REV_CREATE_ROOM;
 
 @Component
 public class DataService {
@@ -102,6 +105,28 @@ public class DataService {
         socketUserMap.put(netSocket, u);
     }
 
+    void createRoom(NetSocket netSocket, Params params) {
+        User currentUser = socketUserMap.get(netSocket);
+        if (currentUser == null) {
+            throw new BusinessException("请重新登录");
+        }
+
+        int radio = params.getRadio();
+        int maxGround = params.getMaxGround();
+
+        int tableId = tables.size();
+        Table currentTable = new Table(tableId, cardService);
+        currentTable.setMaxGameRound(maxGround);
+        currentTable.setRadio(radio);
+
+        tables.put(tableId, currentTable);
+
+        Map<String, Integer> data = new HashMap<>();
+        data.put("tableId", tableId);
+
+        RevMsgUtils.revMsg(currentUser, CmdConstant.REV_CREATE_ROOM, data);
+    }
+
     void sitDown(NetSocket netSocket, Params params) {
 
         User currentUser = socketUserMap.get(netSocket);
@@ -133,7 +158,7 @@ public class DataService {
         Map<String, Object> data = new HashMap<>();
         data.put("tableId", currentTable.get().getTableId());
         data.put("tableNo", "测试房间" + currentTable.get().getTableId());
-        data.put("maxGameRound", Table.getMaxGameRound());
+        data.put("maxGameRound", currentTable.get().getMaxGameRound());
         data.put("currentGameRound", currentTable.get().getGameRound());
 
         List<Map<String, Object>> userList = new ArrayList<>();
@@ -162,7 +187,7 @@ public class DataService {
         map.put("userId", currentUser.getUserId());
         map.put("seatId", currentUser.getSeatId());
         Result result = new Result.Builder()
-                .setCmd(CmdConstant.BROADCAST_JOIN_TABLE)
+                .setCmd(CmdConstant.BROADCAST_SIT_DOWN)
                 .setData(map)
                 .build();
 
@@ -204,7 +229,7 @@ public class DataService {
                     user.getNetSocket().write(A0Json.encode(result));
                 });
 
-        if (readyUsers.size() == Table.getMaxGameRound()) {
+        if (readyUsers.size() == currentTable.getMaxGameRound()) {
             List<Byte> pokes = Arrays.asList(PokeData.GameLogic);
 
             Collections.shuffle(pokes);
