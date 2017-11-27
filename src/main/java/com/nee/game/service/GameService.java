@@ -9,6 +9,7 @@ import com.nee.game.common.constant.ErrorCodeEnum;
 import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.uitls.StringUtils;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
 import io.vertx.ext.web.RoutingContext;
@@ -32,7 +33,7 @@ public class GameService {
                         new TypeReference<Request<Params>>() {
                         });
                 int cmd = request.getCmd();
-                System.out.println(A0Json.encode(request));
+                System.out.println(Json.encode(request));
 
                 switch (cmd) {
                     case CmdConstant.LOGIN_HALL:

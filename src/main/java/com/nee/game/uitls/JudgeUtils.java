@@ -1,11 +1,12 @@
 package com.nee.game.uitls;
 
+import java.util.*;
+
 public class JudgeUtils {
 
-    public static boolean isSevenPair() {
 
-        return false;
-    }
+
+
 
 
 }

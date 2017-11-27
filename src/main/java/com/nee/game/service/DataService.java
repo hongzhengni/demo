@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class DataService {
@@ -23,7 +22,7 @@ public class DataService {
     private CardService cardService;
 
     public static Map<Integer, Table> tables = new HashMap<>();
-    private static Map<Integer, User> users = new HashMap<>();
+    public static Map<Integer, User> users = new HashMap<>();
     private static Map<NetSocket, User> socketUserMap = new HashMap<>();
 
 
@@ -105,7 +104,7 @@ public class DataService {
         int radio = params.getRatio();
         int maxGround = params.getMaxGround();
 
-        int tableId = tables.size();
+        int tableId = tables.size() + 1;
         Table currentTable = new Table(tableId, cardService);
         currentTable.setMaxGameRound(maxGround);
         currentTable.setRadio(radio);
@@ -117,6 +116,8 @@ public class DataService {
         data.put("userId", currentUser.getUserId());
 
         RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_CREATE_ROOM, data);
+
+        currentTable.addVirtualUser(3);
     }
 
     void sitDown(NetSocket netSocket, Params params) {
@@ -125,57 +126,8 @@ public class DataService {
         if (currentUser == null) {
             throw new BusinessException("请重新登录");
         }
-        AtomicReference<Table> currentTable = new AtomicReference<>();
-        currentTable.set(null);
-        Integer tableId = currentUser.getTableId();
-        if (tableId == null) {
-            tableId = params.getTableId();
-            currentUser.offline = false;
 
-            currentTable.set(tables.get(tableId));
-            if (currentTable.get() == null) {
-                throw new BusinessException("桌子不存在");
-            }
-            if (currentTable.get().isFull()) {
-                throw new BusinessException("table is full");
-            }
-
-            currentTable.get().addUser(currentUser);
-        } else {
-            currentTable.set(tables.get(tableId));
-            if (currentTable.get() == null) {
-                throw new BusinessException("桌子不存在");
-            }
-        }
-        Map<String, Object> data = new HashMap<>();
-        data.put("tableId", currentTable.get().getTableId());
-        data.put("tableNo", "测试房间" + currentTable.get().getTableId());
-        data.put("maxGameRound", currentTable.get().getMaxGameRound());
-        data.put("currentGameRound", currentTable.get().getGameRound());
-
-        List<Map<String, Object>> userList = new ArrayList<>();
-        currentTable.get().getUsers().stream().filter(Objects::nonNull)
-                .forEach(user -> {
-                    Map<String, Object> userMap = new HashMap<>();
-                    userMap.put("userId", user.getUserId());
-                    userMap.put("seatId", user.getSeatId());
-                    userMap.put("avatarUrl", user.getAvatarUrl());
-                    userMap.put("status", user.getStatus());
-                    userMap.put("nick", user.getNick());
-                    userMap.put("money", user.getMoney());
-
-                    userList.add(userMap);
-                });
-        data.put("users", userList);
-
-        RevMsgUtils.revMsg(currentUser, CmdConstant.REV_ROOM_INFO, data);
-
-        //广播消息
-        Map<String, Object> map = new HashMap<>();
-        map.put("userId", currentUser.getUserId());
-        map.put("seatId", currentUser.getSeatId());
-
-        RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_SIT_DOWN, map);
+        currentUser.sitDown(params.getTableId());
     }
 
     //玩家准备
@@ -183,14 +135,9 @@ public class DataService {
 
         User currentUser = socketUserMap.get(netSocket);
         Table currentTable = tables.get(currentUser.getTableId());
-        currentUser.setStatus(CommonConstant.USER_STATUS.READY);
 
         currentTable.tache = CommonConstant.TABLE_TACHE.READY;
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", currentUser.getUserId());
-
-        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_USER_READY, data);
+        currentUser.ready();
     }
 
 
@@ -237,7 +184,7 @@ public class DataService {
         User currentUser = socketUserMap.get(netSocket);
         Byte poke = params.getPoke();
 
-        currentUser.playCard(poke);
+        currentUser.huCard(poke);
     }
 
     /**
@@ -256,7 +203,6 @@ public class DataService {
         User user = socketUserMap.get(netSocket);
         if (user != null) {
             user.setNetSocket(null);
-            user.offline = true;
         }
 
         socketUserMap.remove(netSocket);

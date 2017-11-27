@@ -18,6 +18,7 @@ public class CmdConstant {
     public final static int BROADCAST_CREATE_ROOM = 0x2002; //
     public final static int BROADCAST_SIT_DOWN = 0x2003; //坐下广播消息
     public final static int BROADCAST_USER_READY = 0x2005; //准备广播消息
+    public final static int BROADCAST_USER_DICE = 0x2006; //
     public final static int BROADCAST_STAND_UP = 0x2007; //起立广播消息
     public final static int BROADCAST_START_GAME = 0x2009; //开局广播消息
     public final static int REV_START_GAME = 0x200A; //开局DEAL消息

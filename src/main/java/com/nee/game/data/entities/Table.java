@@ -4,11 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.service.CardService;
+import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
 
 import java.util.*;
-
-import static com.nee.game.common.constant.CmdConstant.BROADCAST_CATCH_CARD;
 
 
 public class Table {
@@ -49,15 +48,41 @@ public class Table {
         return gameRound >= maxGameRound;
     }
 
-    public void addUser(User user) {
-        for (int i = 0; i < 4; i++) {
+    void addUser(User user) {
+        if (users.contains(user)) {
+            return;
+        }
+        for (int i = 0; i < maxCount; i++) {
             if (users.get(i) == null) {
                 user.setSeatId(i);
                 user.setTableId(tableId);
                 users.set(i, user);
+
+                //广播消息
+                Map<String, Object> map = new HashMap<>();
+                map.put("userId", user.getUserId());
+                map.put("seatId", user.getSeatId());
+                map.put("nick", user.getNick());
+                map.put("avatarUrl", user.getAvatarUrl());
+                map.put("tableId", tableId);
+
+
+                RevMsgUtils.revMsg(DataService.users.values(), CmdConstant.BROADCAST_SIT_DOWN, map);
                 break;
             }
         }
+    }
+
+    public void addVirtualUser(int num) {
+       for (int i = 0; i < num; i++) {
+           User u = new User(cardService);
+            u.setUserId(DataService.users.size() + 1);
+            u.setNick("测试用户" + u.getUserId());
+            u.setMoney(1000);
+            DataService.users.put(u.getUserId(), u);
+
+            u.sitDown(tableId);
+       }
     }
 
     private int readyCount() {
@@ -69,7 +94,7 @@ public class Table {
         return i;
     }
 
-    public boolean isFull() {
+    private boolean isFull() {
         return getRealCount() == maxCount;
     }
 
@@ -132,16 +157,28 @@ public class Table {
                 return;
             }
             if (tache == CommonConstant.TABLE_TACHE.READY) {
+                Random random = new Random();
+                int seatId = random.nextInt(4);
+                User hogUser = users.get(seatId);
+                hogUser.setHog(1);
+                int d1 = 0, d2 = 0;
+                while (d1 + d2 < 6) {
+                    d1 = random.nextInt(6) + 1;
+                    d2 = random.nextInt(6) + 1;
+                }
+
+                Map<String, Integer> diceMap = new HashMap<>();
+                diceMap.put("userId", hogUser.getUserId());
+                diceMap.put("dice1", d1);
+                diceMap.put("dice2", d2);
+
+                RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_DICE, diceMap);
 
                 // offline user auto ready
-                users.stream().filter(user -> user.getNetSocket() == null).forEach(user -> {
-                    user.setStatus(CommonConstant.USER_STATUS.READY);
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("userId", user.getUserId());
-                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_READY, map);
-                });
+                users.stream().filter(user -> user.getNetSocket() == null).forEach(User::ready);
                 // all people are ready
                 if (readyCount() == maxCount) {
+
                     cardService.initCard(tableId);
                     Map<String, Object> data = new HashMap<>();
                     data.put("currentGameRound", gameRound);
@@ -170,6 +207,15 @@ public class Table {
                                 RevMsgUtils.revMsg(user, CmdConstant.REV_START_GAME, userMap);
                                 user.setStatus(CommonConstant.USER_STATUS.PLAYING);
                             });
+
+                    System.out.println("find hog of user --> start " );
+                    users.stream().filter(Objects::nonNull)
+                            .forEach(user -> {
+                                System.out.println("user id is: " + user.getUserId() + " , hog: " + user.getHog());
+                                if (user.getHog() == 1) {
+                                    user.catchCard();
+                                }
+                            });
                     tache = CommonConstant.TABLE_TACHE.PLAYING;
                 }
 
@@ -191,6 +237,14 @@ public class Table {
         }
 
         return users.get(nextActionSeatId);
+    }
+
+    public static void main(String args[]) {
+
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            System.out.println(random.nextInt(4));
+        }
     }
 
 }
