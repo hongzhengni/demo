@@ -18,6 +18,10 @@ public class Table {
     private int tableId;
     private List<User> users;
 
+    private List<Map<String, Object>> hu_tasks = new ArrayList<>();
+    private List<Map<String, Object>> action_tasks = new ArrayList<>();
+
+
     private CardService cardService;
 
     @JsonIgnore
@@ -224,16 +228,65 @@ public class Table {
         }
     }
 
-    void nextPeople(int userId) {
-        User nextUser = getNextUser(userId);
+    void calculateAction(User user, Byte poke) {
+         User nextUser = user;
+        for (int i = 0; i < 3; i++) {
+            nextUser = getNextUser(nextUser);
 
-        nextUser.catchCard();
+            if (nextUser.canHU(poke)) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("userId", nextUser.getUserId());
+                map.put("type", CommonConstant.ACTION_TYPE.HU);
+                Byte[] pokes = new Byte[1];
+                pokes[0] = poke;
+                map.put("pokes", pokes);
+                hu_tasks.add(map);
+            }
+            if (nextUser.canGang(poke)) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("userId", nextUser.getUserId());
+                map.put("type", CommonConstant.ACTION_TYPE.GANG);
+                Byte[] pokes = new Byte[1];
+                pokes[0] = poke;
+                map.put("pokes", pokes);
+                action_tasks.add(map);
+            }
+            if (nextUser.canPen(poke)) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("userId", nextUser.getUserId());
+                map.put("type", CommonConstant.ACTION_TYPE.PEN);
+                Byte[] pokes = new Byte[1];
+                pokes[0] = poke;
+                map.put("pokes", pokes);
+                action_tasks.add(map);
+            }
+
+        }
     }
 
-    private User getNextUser(int userId) {
+    void nextStep(User user, Byte poke) {
+
+        if (hu_tasks.size() > 0) {
+            hu_tasks.forEach();
+        }
+
+
+        User nextUser = getNextUser(user);
+
+        Map<String, Object> chi_poke_map = nextUser.canChi(poke);
+        if (chi_poke_map == null) {
+            nextUser.catchCard();
+        } else {
+            RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
+
+
+        }
+    }
+
+    private User getNextUser(User user) {
         int nextActionSeatId = 0;
-        if (userId < 3) {
-            nextActionSeatId = userId + 1;
+        if (user.getSeatId() < 3) {
+            nextActionSeatId = user.getSeatId() + 1;
         }
 
         return users.get(nextActionSeatId);

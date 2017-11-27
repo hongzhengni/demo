@@ -54,7 +54,7 @@ public class User implements Comparable<User> {
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
      **/
 
-    public User(List<Byte> pokes) {
+    private User(List<Byte> pokes) {
         this.pokes = pokes;
     }
 
@@ -110,7 +110,7 @@ public class User implements Comparable<User> {
         this.nick = nick;
     }
 
-    public int getMoney() {
+    private int getMoney() {
         return money;
     }
 
@@ -118,11 +118,11 @@ public class User implements Comparable<User> {
         this.money = money;
     }
 
-    public String getAvatarUrl() {
+    String getAvatarUrl() {
         return avatarUrl;
     }
 
-    public int getStatus() {
+    int getStatus() {
         return status;
     }
 
@@ -131,7 +131,7 @@ public class User implements Comparable<User> {
     }
 
 
-    public Integer getSeatId() {
+    Integer getSeatId() {
         return seatId;
     }
 
@@ -175,20 +175,12 @@ public class User implements Comparable<User> {
         return 0;
     }
 
-    public int getOriginalMoney() {
-        return originalMoney;
-    }
-
-    public int getHog() {
+    int getHog() {
         return hog;
     }
 
     void setHog(int hog) {
         this.hog = hog;
-    }
-
-    private void setOriginalMoney(int originalMoney) {
-        this.originalMoney = originalMoney;
     }
 
     private boolean shouldCatch() {
@@ -206,7 +198,7 @@ public class User implements Comparable<User> {
         return true;
     }
 
-    private boolean canHU(Byte poke) {
+    boolean canHU(Byte poke) {
 
         return sevenPairHu(poke) || commonHu(poke);
 
@@ -240,7 +232,7 @@ public class User implements Comparable<User> {
     }
 
     private boolean commonHu(byte poke) {
-        List<Byte> pairs = new ArrayList<Byte>(this.pokes);
+        List<Byte> pairs = new ArrayList<>(this.pokes);
 
         pairs.add(poke);
         //只有两张牌
@@ -253,7 +245,7 @@ public class User implements Comparable<User> {
         Set<Byte> keys = countMap.keySet();
         for (Byte key : keys) {
             if (countMap.get(key) > 1) {
-                List<Byte> pairT = new ArrayList<Byte>(pairs);
+                List<Byte> pairT = new ArrayList<>(pairs);
                 pairT.remove(key);
                 pairT.remove(key);
 
@@ -261,19 +253,6 @@ public class User implements Comparable<User> {
                     return true;
                 }
             }
-        }
-
-        return false;
-    }
-
-    private boolean isPageCard(Byte[] pokes) {
-        if (pokes[0].equals(pokes[1]) && pokes[1].equals(pokes[2])) {
-            return true;
-        }
-
-        Arrays.sort(pokes);
-        if ((pokes[0] + 1) == pokes[1] && (pokes[1] + 1) == pokes[2] && pokes[2] < 30) {
-            return true;
         }
 
         return false;
@@ -301,31 +280,48 @@ public class User implements Comparable<User> {
     }
 
 
-    private boolean canGang(Byte poke) {
+    boolean canGang(Byte poke) {
         return countMap.get(poke) == 4;
     }
 
-    private boolean canPen(Byte poke) {
+    boolean canPen(Byte poke) {
         return countMap.get(poke) == 3;
     }
 
-    private List<Byte[]> canChi(Byte poke) {
+    Map<String, Object> canChi(Byte poke) {
 
-        List<Byte[]> list = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", CommonConstant.ACTION_TYPE.CHI);
 
+        List<Map<String, Object>> categories = new ArrayList<>();
         if (this.pokes.indexOf((byte) (poke + 1)) > 0 && this.pokes.indexOf((byte) (poke + 2)) > 0) {
-            Byte[] bytes = new Byte[]{(byte) (poke + 1), (byte) (poke + 2)};
-            list.add(bytes);
+            Byte[] bytes = new Byte[]{poke, (byte) (poke + 1), (byte) (poke + 2)};
+
+            Map<String, Object> categoryMap = new HashMap<>();
+            categoryMap.put("location", 1);
+            categoryMap.put("pokes", bytes);
+            categories.add(categoryMap);
         }
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke + 1)) > 0) {
-            Byte[] bytes = new Byte[]{(byte) (poke + 1), (byte) (poke - 1)};
-            list.add(bytes);
+            Byte[] bytes = new Byte[]{(byte) (poke + 1), poke, (byte) (poke - 1)};
+            Map<String, Object> categoryMap = new HashMap<>();
+            categoryMap.put("location", 2);
+            categoryMap.put("pokes", bytes);
+            categories.add(categoryMap);
         }
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke - 2)) > 0) {
-            Byte[] bytes = new Byte[]{(byte) (poke - 1), (byte) (poke - 2)};
-            list.add(bytes);
+            Byte[] bytes = new Byte[]{poke, (byte) (poke - 1), (byte) (poke - 2)};
+            Map<String, Object> categoryMap = new HashMap<>();
+            categoryMap.put("location", 3);
+            categoryMap.put("pokes", bytes);
+            categories.add(categoryMap);
         }
-        return list;
+        if (categories.size() <= 0) {
+            return null;
+        }
+        map.put("userId", userId);
+        map.put("detail", categories);
+        return map;
     }
 
 
@@ -410,41 +406,22 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
 
-        for (User user : currentTable.getUsers()) {
-            if (user != null) {
-
-                RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
-            }
-        }
-
-        currentTable.nextPeople(userId);
+        currentTable.nextStep(this, poke);
     }
 
-    private List<Map<String, Object>> choiceMap(Byte poke, boolean self) {
-        Map<String, Object> choiceData = new HashMap<>();
-        choiceData.put("userId", userId);
-        choiceData.put("seatId", seatId);
+    private Map<String, Object> choiceData(Byte poke, boolean self) {
+
+        List<Map<String, Object>> choices = new ArrayList<>();
+
         if (canHU(poke)) {
             Map<String, Object> choiceMap = new HashMap<>();
             choiceMap.put("type", CommonConstant.ACTION_TYPE.HU);
             Byte[] pokes = new Byte[1];
             pokes[0] = poke;
             choiceMap.put("pokes", pokes);
-
-            List<Map<String, Object>> choices = new ArrayList();
             choices.add(choiceMap);
-            choiceData.put("choice", choiceMap);
-
         }
-        if (canHU(poke)) {
-            Map<String, Object> choiceMap = new HashMap<>();
-            choiceMap.put("type", CommonConstant.ACTION_TYPE.HU);
-            Byte[] pokes = new Byte[1];
-            pokes[0] = poke;
-            choiceMap.put("pokes", pokes);
-
-            choices.add(choiceMap);
-        } else if (canGang(poke)) {
+        if (canGang(poke)) {
             Map<String, Object> choiceMap = new HashMap<>();
             choiceMap.put("type", CommonConstant.ACTION_TYPE.GANG);
             Byte[] pokes = new Byte[1];
@@ -452,7 +429,26 @@ public class User implements Comparable<User> {
             choiceMap.put("pokes", pokes);
             choices.add(choiceMap);
         }
+        if (!self) {
+            if (canPen(poke)) {
+                Map<String, Object> choiceMap = new HashMap<>();
+                choiceMap.put("type", CommonConstant.ACTION_TYPE.PEN);
+                Byte[] pokes = new Byte[1];
+                pokes[0] = poke;
+                choiceMap.put("pokes", pokes);
+                choices.add(choiceMap);
+            }
+        }
 
+        if (choices.size() > 0) {
+            Map<String, Object> choiceData = new HashMap<>();
+            choiceData.put("userId", userId);
+            choiceData.put("seatId", seatId);
+            choiceData.put("choices", choices);
+            return choiceData;
+        }
+
+        return null;
     }
 
     public void chiCard(List<Byte> pokes, int location) {
