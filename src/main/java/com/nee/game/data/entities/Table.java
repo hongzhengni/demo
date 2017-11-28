@@ -20,6 +20,15 @@ public class Table {
 
     private List<Map<String, Object>> hu_tasks = new ArrayList<>();
     private List<Map<String, Object>> action_tasks = new ArrayList<>();
+    private List<User> huUsers = new ArrayList<>();
+
+    private User currentActionUser;
+    private Byte currentPoke;
+
+    void setCurrentEle(User user, Byte poke) {
+        this.currentActionUser = user;
+        this.currentPoke = poke;
+    }
 
 
     private CardService cardService;
@@ -78,15 +87,15 @@ public class Table {
     }
 
     public void addVirtualUser(int num) {
-       for (int i = 0; i < num; i++) {
-           User u = new User(cardService);
+        /*for (int i = 0; i < num; i++) {
+            User u = new User(cardService);
             u.setUserId(DataService.users.size() + 1);
             u.setNick("测试用户" + u.getUserId());
             u.setMoney(1000);
             DataService.users.put(u.getUserId(), u);
 
             u.sitDown(tableId);
-       }
+        }*/
     }
 
     private int readyCount() {
@@ -151,6 +160,72 @@ public class Table {
         return radio;
     }
 
+    public List<User> getHuUsers() {
+        return huUsers;
+    }
+
+    void calculateAction() {
+        User nextUser = currentActionUser;
+        for (int i = 0; i < 3; i++) {
+            nextUser = getNextUser(nextUser);
+
+            if (nextUser.canHU(currentPoke)) {
+                hu_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.HU, currentPoke));
+            }
+            if (nextUser.canGang(currentPoke)) {
+                action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.GANG, currentPoke));
+            }
+            if (nextUser.canPen(currentPoke)) {
+                action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.PEN, currentPoke));
+            }
+
+        }
+    }
+
+    void nextStep() {
+        Timer timer = new Timer();
+
+        if (hu_tasks.size() == 0) {
+            huUsers.clear();
+        }
+        if (hu_tasks.size() > 0) {
+            hu_tasks.forEach(single -> {
+                Integer userId = (Integer) single.get("userId");
+                User huUser = DataService.users.get(userId);
+                huUsers.add(huUser);
+                RevMsgUtils.revMsg(huUser, CmdConstant.REV_ACTION_CARD, single);
+
+                huUser.autoGiveUpPoke();
+            });
+            hu_tasks.clear();
+        } else if (action_tasks.size() > 0) {
+            Map<String, Object> single = action_tasks.remove(0);
+            Integer userId = (Integer) single.get("userId");
+            User actionUser = DataService.users.get(userId);
+            RevMsgUtils.revMsg(actionUser, CmdConstant.REV_ACTION_CARD, single);
+            actionUser.autoGiveUpPoke();
+        } else {
+            User nextUser = getNextUser(currentActionUser);
+
+            Map<String, Object> chi_poke_map = nextUser.canChi(currentPoke);
+            if (chi_poke_map == null) {
+                nextUser.catchCard();
+            } else {
+                RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
+                nextUser.autoGiveUpPoke();
+            }
+        }
+    }
+
+    private User getNextUser(User user) {
+        int nextActionSeatId = 0;
+        if (user.getSeatId() < 3) {
+            nextActionSeatId = user.getSeatId() + 1;
+        }
+
+        return users.get(nextActionSeatId);
+    }
+
     private class AutoExecuteTask extends TimerTask {
 
         @Override
@@ -212,7 +287,7 @@ public class Table {
                                 user.setStatus(CommonConstant.USER_STATUS.PLAYING);
                             });
 
-                    System.out.println("find hog of user --> start " );
+                    System.out.println("find hog of user --> start ");
                     users.stream().filter(Objects::nonNull)
                             .forEach(user -> {
                                 System.out.println("user id is: " + user.getUserId() + " , hog: " + user.getHog());
@@ -228,69 +303,6 @@ public class Table {
         }
     }
 
-    void calculateAction(User user, Byte poke) {
-         User nextUser = user;
-        for (int i = 0; i < 3; i++) {
-            nextUser = getNextUser(nextUser);
-
-            if (nextUser.canHU(poke)) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("userId", nextUser.getUserId());
-                map.put("type", CommonConstant.ACTION_TYPE.HU);
-                Byte[] pokes = new Byte[1];
-                pokes[0] = poke;
-                map.put("pokes", pokes);
-                hu_tasks.add(map);
-            }
-            if (nextUser.canGang(poke)) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("userId", nextUser.getUserId());
-                map.put("type", CommonConstant.ACTION_TYPE.GANG);
-                Byte[] pokes = new Byte[1];
-                pokes[0] = poke;
-                map.put("pokes", pokes);
-                action_tasks.add(map);
-            }
-            if (nextUser.canPen(poke)) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("userId", nextUser.getUserId());
-                map.put("type", CommonConstant.ACTION_TYPE.PEN);
-                Byte[] pokes = new Byte[1];
-                pokes[0] = poke;
-                map.put("pokes", pokes);
-                action_tasks.add(map);
-            }
-
-        }
-    }
-
-    void nextStep(User user, Byte poke) {
-
-        if (hu_tasks.size() > 0) {
-            hu_tasks.forEach();
-        }
-
-
-        User nextUser = getNextUser(user);
-
-        Map<String, Object> chi_poke_map = nextUser.canChi(poke);
-        if (chi_poke_map == null) {
-            nextUser.catchCard();
-        } else {
-            RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
-
-
-        }
-    }
-
-    private User getNextUser(User user) {
-        int nextActionSeatId = 0;
-        if (user.getSeatId() < 3) {
-            nextActionSeatId = user.getSeatId() + 1;
-        }
-
-        return users.get(nextActionSeatId);
-    }
 
     public static void main(String args[]) {
 

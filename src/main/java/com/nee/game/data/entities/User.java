@@ -37,6 +37,8 @@ public class User implements Comparable<User> {
 
     private int hog = 0;
 
+    private Timer timer = new Timer();
+
 
     /**
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
@@ -288,39 +290,57 @@ public class User implements Comparable<User> {
         return countMap.get(poke) == 3;
     }
 
+    Map<String, Object> actionMap(Integer actionType, Byte poke) {
+        Map<String, Object> actionMap = new HashMap<>();
+        List<Map<String, Object>> choices = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
+        map.put("type", actionType);
+        Byte[] pokes = new Byte[1];
+        pokes[0] = poke;
+        map.put("pokes", pokes);
+        choices.add(map);
+        actionMap.put("userId", userId);
+        actionMap.put("seatId", seatId);
+        actionMap.put("choices", choices);
+
+        return actionMap;
+    }
+
     Map<String, Object> canChi(Byte poke) {
 
         Map<String, Object> map = new HashMap<>();
-        map.put("type", CommonConstant.ACTION_TYPE.CHI);
-
-        List<Map<String, Object>> categories = new ArrayList<>();
+        List<Map<String, Object>> choices = new ArrayList<>();
         if (this.pokes.indexOf((byte) (poke + 1)) > 0 && this.pokes.indexOf((byte) (poke + 2)) > 0) {
             Byte[] bytes = new Byte[]{poke, (byte) (poke + 1), (byte) (poke + 2)};
 
             Map<String, Object> categoryMap = new HashMap<>();
+            map.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 1);
             categoryMap.put("pokes", bytes);
-            categories.add(categoryMap);
+            choices.add(categoryMap);
         }
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke + 1)) > 0) {
             Byte[] bytes = new Byte[]{(byte) (poke + 1), poke, (byte) (poke - 1)};
             Map<String, Object> categoryMap = new HashMap<>();
+            map.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 2);
             categoryMap.put("pokes", bytes);
-            categories.add(categoryMap);
+            choices.add(categoryMap);
         }
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke - 2)) > 0) {
             Byte[] bytes = new Byte[]{poke, (byte) (poke - 1), (byte) (poke - 2)};
             Map<String, Object> categoryMap = new HashMap<>();
+            map.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 3);
             categoryMap.put("pokes", bytes);
-            categories.add(categoryMap);
+            choices.add(categoryMap);
         }
-        if (categories.size() <= 0) {
+        if (choices.size() <= 0) {
             return null;
         }
         map.put("userId", userId);
-        map.put("detail", categories);
+        map.put("seatId", seatId);
+        map.put("choices", choices);
         return map;
     }
 
@@ -380,7 +400,8 @@ public class User implements Comparable<User> {
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_CATCH_CARD, data);
 
         System.out.println("start deal card -> step: 2");
-        List<Map<String, Object>> choices = new ArrayList<>();
+
+        Map<String, Object> choiceData = choiceData(poke);
 
         System.out.println("start deal card -> step: 3");
         this.pokes.add(poke);
@@ -388,9 +409,8 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
 
-        if (choices.size() > 0) {
-            data.put("choice", choices);
-            RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, data);
+        if (choiceData != null) {
+            RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
         }
         autoPlay();
     }
@@ -406,10 +426,14 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
 
-        currentTable.nextStep(this, poke);
+        currentTable.setCurrentEle(this, poke);
+
+        currentTable.calculateAction();
+
+        currentTable.nextStep();
     }
 
-    private Map<String, Object> choiceData(Byte poke, boolean self) {
+    private Map<String, Object> choiceData(Byte poke) {
 
         List<Map<String, Object>> choices = new ArrayList<>();
 
@@ -429,17 +453,6 @@ public class User implements Comparable<User> {
             choiceMap.put("pokes", pokes);
             choices.add(choiceMap);
         }
-        if (!self) {
-            if (canPen(poke)) {
-                Map<String, Object> choiceMap = new HashMap<>();
-                choiceMap.put("type", CommonConstant.ACTION_TYPE.PEN);
-                Byte[] pokes = new Byte[1];
-                pokes[0] = poke;
-                choiceMap.put("pokes", pokes);
-                choices.add(choiceMap);
-            }
-        }
-
         if (choices.size() > 0) {
             Map<String, Object> choiceData = new HashMap<>();
             choiceData.put("userId", userId);
@@ -522,7 +535,31 @@ public class User implements Comparable<User> {
     }
 
     public void huCard(Byte poke) {
+        Table currentTable = DataService.tables.get(tableId);
 
+        List<Map<String, Object>> data = new ArrayList<>();
+        currentTable.getUsers() .forEach(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("userId", user.getUserId());
+                    userMap.put("seatId", user.getSeatId());
+                    userMap.put("hu", false);
+                    if (currentTable.getHuUsers().contains(user)) {
+                        user.pokes.add(poke);
+                        userMap.put("hu", true);
+                    }
+                    userMap.put("pokes", user.pokes);
+                    data.add(userMap);
+                });
+
+        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
+
+    }
+
+    private void giveUpPoke() {
+        Table currentTable = DataService.tables.get(tableId);
+        currentTable.nextStep();
+
+        timer.cancel();
     }
 
     public void standUp() {
@@ -540,7 +577,6 @@ public class User implements Comparable<User> {
 
 
     private void autoPlay() {
-        Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -549,9 +585,20 @@ public class User implements Comparable<User> {
                     playCard(poke);
                 }
             }
-        }, 5000);
+        }, CommonConstant.GAP_TIME);
 
     }
+
+    public void autoGiveUpPoke() {
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                    giveUpPoke();
+            }
+        }, CommonConstant.GAP_TIME);
+    }
+
+
 
     public static void main(String[] args) {
 
@@ -568,5 +615,7 @@ public class User implements Comparable<User> {
         System.out.println(user.canHU((byte) 0x08));
 
     }
+
+
 }
 

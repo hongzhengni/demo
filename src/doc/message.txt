@@ -26,4 +26,4 @@
 7、动作牌掩码消息：{"cmd":0x200D,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "choice":[{"type":1,"location"1:,"pokes":["0x01", "0x02"]},{"type":2,"pokes":["0x01", "0x02", "0x03"]}]}
 8、动作牌广播消息：{"cmd":0x200F,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "action":{"type":1,"pokes":["0x01", "0x02"]}}
 9、摸牌广播消息：{"cmd":0x2021,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "poke":"0x01"}}
-10、胡牌广播消息：{"cmd":0x2023,"code":"0","message":"操作成功","data":{"userId":1, "seatId":1, "users":[{"userId":1,seatId":1,pokes":[]}]}
+10、胡牌广播消息：{"cmd":0x2023,"code":"0","message":"操作成功","data":{"users":[{"userId":1,seatId":1,pokes":[],"hu":true}, {"userId":2,seatId":2,pokes":[]}]}
