@@ -235,7 +235,7 @@ public class Table {
                 return;
             }
             if (tache == CommonConstant.TABLE_TACHE.READY) {
-
+                tache = CommonConstant.TABLE_TACHE.PLAYING;
 
                 // offline user auto ready
                 users.stream().filter(user -> user.getNetSocket() == null).forEach(User::ready);
@@ -296,7 +296,7 @@ public class Table {
                                     user.catchCard();
                                 }
                             });
-                    tache = CommonConstant.TABLE_TACHE.PLAYING;
+
                 }
 
             }
