@@ -183,7 +183,6 @@ public class Table {
     }
 
     void nextStep() {
-        Timer timer = new Timer();
 
         if (hu_tasks.size() == 0) {
             huUsers.clear();
@@ -236,29 +235,31 @@ public class Table {
                 return;
             }
             if (tache == CommonConstant.TABLE_TACHE.READY) {
-                Random random = new Random();
-                int seatId = random.nextInt(4);
-                User hogUser = users.get(seatId);
-                hogUser.setHog(1);
-                int d1 = 0, d2 = 0;
-                while (d1 + d2 < 6) {
-                    d1 = random.nextInt(6) + 1;
-                    d2 = random.nextInt(6) + 1;
-                }
 
-                Map<String, Integer> diceMap = new HashMap<>();
-                diceMap.put("userId", hogUser.getUserId());
-                diceMap.put("dice1", d1);
-                diceMap.put("dice2", d2);
-
-                RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_DICE, diceMap);
 
                 // offline user auto ready
                 users.stream().filter(user -> user.getNetSocket() == null).forEach(User::ready);
                 // all people are ready
                 if (readyCount() == maxCount) {
+                    Random random = new Random();
+                    int seatId = random.nextInt(4);
+                    User hogUser = users.get(seatId);
+                    hogUser.setHog(1);
+                    int d1 = 0, d2 = 0;
+                    while (d1 + d2 < 6) {
+                        d1 = random.nextInt(6) + 1;
+                        d2 = random.nextInt(6) + 1;
+                    }
+
+                    Map<String, Integer> diceMap = new HashMap<>();
+                    diceMap.put("userId", hogUser.getUserId());
+                    diceMap.put("dice1", d1);
+                    diceMap.put("dice2", d2);
+
+                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_DICE, diceMap);
 
                     cardService.initCard(tableId);
+
                     Map<String, Object> data = new HashMap<>();
                     data.put("currentGameRound", gameRound);
                     List<Map<String, Object>> userMaps = new ArrayList<>();

@@ -347,6 +347,9 @@ public class User implements Comparable<User> {
 
     public void ready() {
         Table currentTable = DataService.tables.get(tableId);
+        if (currentTable == null) {
+            return;
+        }
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
         data.put("seatId", seatId);
@@ -408,7 +411,7 @@ public class User implements Comparable<User> {
         data.put("poke", poke);
 
         RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
-
+        System.out.println("start deal card -> step: 4  has choiceData" + choiceData == null);
         if (choiceData != null) {
             RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
         }
@@ -416,7 +419,7 @@ public class User implements Comparable<User> {
     }
 
     public void playCard(Byte poke) {
-
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
 
         Map<String, Object> data = new HashMap<>();
@@ -431,6 +434,7 @@ public class User implements Comparable<User> {
         currentTable.calculateAction();
 
         currentTable.nextStep();
+
     }
 
     private Map<String, Object> choiceData(Byte poke) {
@@ -465,6 +469,7 @@ public class User implements Comparable<User> {
     }
 
     public void chiCard(List<Byte> pokes, int location) {
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         if (chi_pokes == null) {
             chi_pokes = pokes;
@@ -489,6 +494,7 @@ public class User implements Comparable<User> {
     }
 
     public void penCard(List<Byte> pokes) {
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         if (pen_pokes == null) {
             pen_pokes = pokes;
@@ -513,6 +519,7 @@ public class User implements Comparable<User> {
     }
 
     public void gangCard(List<Byte> pokes) {
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         if (gang_pokes == null) {
             gang_pokes = pokes;
@@ -535,31 +542,29 @@ public class User implements Comparable<User> {
     }
 
     public void huCard(Byte poke) {
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
-
         List<Map<String, Object>> data = new ArrayList<>();
-        currentTable.getUsers() .forEach(user -> {
-                    Map<String, Object> userMap = new HashMap<>();
-                    userMap.put("userId", user.getUserId());
-                    userMap.put("seatId", user.getSeatId());
-                    userMap.put("hu", false);
-                    if (currentTable.getHuUsers().contains(user)) {
-                        user.pokes.add(poke);
-                        userMap.put("hu", true);
-                    }
-                    userMap.put("pokes", user.pokes);
-                    data.add(userMap);
-                });
+        currentTable.getUsers().forEach(user -> {
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("userId", user.getUserId());
+            userMap.put("seatId", user.getSeatId());
+            userMap.put("hu", false);
+            if (currentTable.getHuUsers().contains(user)) {
+                user.pokes.add(poke);
+                userMap.put("hu", true);
+            }
+            userMap.put("pokes", user.pokes);
+            data.add(userMap);
+        });
 
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
-
     }
 
     private void giveUpPoke() {
+        timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         currentTable.nextStep();
-
-        timer.cancel();
     }
 
     public void standUp() {
@@ -589,15 +594,14 @@ public class User implements Comparable<User> {
 
     }
 
-    public void autoGiveUpPoke() {
+    void autoGiveUpPoke() {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                    giveUpPoke();
+                giveUpPoke();
             }
         }, CommonConstant.GAP_TIME);
     }
-
 
 
     public static void main(String[] args) {

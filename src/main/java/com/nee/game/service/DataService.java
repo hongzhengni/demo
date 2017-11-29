@@ -25,15 +25,6 @@ public class DataService {
     public static Map<Integer, User> users = new HashMap<>();
     private static Map<NetSocket, User> socketUserMap = new HashMap<>();
 
-
-    public DataService() {
-        tables.put(1, new Table(1, cardService));
-        tables.put(2, new Table(2, cardService));
-        tables.put(3, new Table(3, cardService));
-        tables.put(4, new Table(4, cardService));
-    }
-
-
     /*public static Table getTable() {
         Iterator<Integer> keys = tables.keySet().iterator();
         Table table;
@@ -51,6 +42,13 @@ public class DataService {
 
     //登陆处理
     void loginHall(NetSocket netSocket, Params params) {
+
+        if (tables.size() == 0) {
+            tables.put(1, new Table(1, cardService));
+            tables.put(2, new Table(2, cardService));
+            tables.put(3, new Table(3, cardService));
+            tables.put(4, new Table(4, cardService));
+        }
 
         int userId = params.getUserId();
         User u;

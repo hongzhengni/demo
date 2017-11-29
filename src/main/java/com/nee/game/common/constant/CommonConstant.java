@@ -2,7 +2,7 @@ package com.nee.game.common.constant;
 
 public interface CommonConstant {
 
-    int GAP_TIME = 5000;
+    int GAP_TIME = 5000 * 20;
 
     interface USER_STATUS {
         int INIT = 0;
