@@ -9,6 +9,7 @@ import com.nee.game.common.exception.BusinessException;
 import com.nee.game.service.CardService;
 import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
+import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
 
 import java.util.*;
@@ -203,7 +204,6 @@ public class User implements Comparable<User> {
     boolean canHU(Byte poke) {
 
         return sevenPairHu(poke) || commonHu(poke);
-
     }
 
     private static boolean huPaiPanDin(List<Byte> pokes) {
@@ -261,6 +261,7 @@ public class User implements Comparable<User> {
     }
 
     private boolean sevenPairHu(Byte poke) {
+        countMap.clear();
         List<Byte> n_p = new ArrayList<>();
         n_p.addAll(pokes);
         n_p.add(poke);
@@ -270,14 +271,12 @@ public class User implements Comparable<User> {
             countMap.putIfAbsent(p, 0);
             countMap.put(p, countMap.get(p) + 1);
         });
-        if (n_p.size() == 14) {
-            for (int i = 0; i < n_p.size() - 1; i += 2) {
-                if (!Objects.equals(n_p.get(i), n_p.get(i + 1))) {
-                    return false;
-                }
+        for (int i = 0; i < n_p.size() - 1; i += 2) {
+            if (!Objects.equals(n_p.get(i), n_p.get(i + 1))) {
+                return false;
             }
-
         }
+
         return true;
     }
 
@@ -287,7 +286,7 @@ public class User implements Comparable<User> {
     }
 
     boolean canPen(Byte poke) {
-        return countMap.get(poke) == 3;
+        return !poke.equals((byte) 0x37) && countMap.get(poke) == 3;
     }
 
     Map<String, Object> actionMap(Integer actionType, Byte poke) {
@@ -308,13 +307,17 @@ public class User implements Comparable<User> {
 
     Map<String, Object> canChi(Byte poke) {
 
+        if (poke < 0x38 && poke > 0x30) {
+            return null;
+        }
+
         Map<String, Object> map = new HashMap<>();
         List<Map<String, Object>> choices = new ArrayList<>();
         if (this.pokes.indexOf((byte) (poke + 1)) > 0 && this.pokes.indexOf((byte) (poke + 2)) > 0) {
             Byte[] bytes = new Byte[]{poke, (byte) (poke + 1), (byte) (poke + 2)};
 
             Map<String, Object> categoryMap = new HashMap<>();
-            map.put("type", CommonConstant.ACTION_TYPE.CHI);
+            categoryMap.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 1);
             categoryMap.put("pokes", bytes);
             choices.add(categoryMap);
@@ -322,7 +325,7 @@ public class User implements Comparable<User> {
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke + 1)) > 0) {
             Byte[] bytes = new Byte[]{(byte) (poke + 1), poke, (byte) (poke - 1)};
             Map<String, Object> categoryMap = new HashMap<>();
-            map.put("type", CommonConstant.ACTION_TYPE.CHI);
+            categoryMap.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 2);
             categoryMap.put("pokes", bytes);
             choices.add(categoryMap);
@@ -330,7 +333,7 @@ public class User implements Comparable<User> {
         if (this.pokes.indexOf((byte) (poke - 1)) > 0 && this.pokes.indexOf((byte) (poke - 2)) > 0) {
             Byte[] bytes = new Byte[]{poke, (byte) (poke - 1), (byte) (poke - 2)};
             Map<String, Object> categoryMap = new HashMap<>();
-            map.put("type", CommonConstant.ACTION_TYPE.CHI);
+            categoryMap.put("type", CommonConstant.ACTION_TYPE.CHI);
             categoryMap.put("location", 3);
             categoryMap.put("pokes", bytes);
             choices.add(categoryMap);
@@ -346,7 +349,10 @@ public class User implements Comparable<User> {
 
 
     public void ready() {
+        System.out.println("tableId : " + tableId);
         Table currentTable = DataService.tables.get(tableId);
+
+        System.out.println("current table: " + Json.encode(currentTable));
         if (currentTable == null) {
             return;
         }
@@ -391,27 +397,24 @@ public class User implements Comparable<User> {
     }
 
     void catchCard() {
-        if (!shouldCatch()) {
-            return;
-        }
+
         Table currentTable = DataService.tables.get(tableId);
         Byte poke = cardService.dealCard(tableId);
+
+        Map<String, Object> broadcast_data = new HashMap<>();
+        broadcast_data.put("userId", userId);
+        broadcast_data.put("seatId", seatId);
+        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_CATCH_CARD, broadcast_data);
+
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
         data.put("seatId", seatId);
-        System.out.println("start deal card -> step: 1");
-        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_CATCH_CARD, data);
-
-        System.out.println("start deal card -> step: 2");
-
         Map<String, Object> choiceData = choiceData(poke);
 
-        System.out.println("start deal card -> step: 3");
         this.pokes.add(poke);
         data.put("poke", poke);
 
         RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
-        System.out.println("start deal card -> step: 4  has choiceData" + choiceData == null);
         if (choiceData != null) {
             RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
         }
@@ -419,6 +422,9 @@ public class User implements Comparable<User> {
     }
 
     public void playCard(Byte poke) {
+        if (poke == null) {
+            poke = pokes.get(pokes.size() - 1);
+        }
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
 
@@ -428,6 +434,15 @@ public class User implements Comparable<User> {
         data.put("poke", poke);
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_PLAY_CARD, data);
+
+        System.out.println(" current user id is: " + userId + "play card: " + poke);
+        System.out.println("before pokes is: " + pokes.toString());
+        int index = this.pokes.indexOf(poke);
+        System.out.println("index: " + index);
+        if (index > 0) {
+            this.pokes.remove(index);
+        }
+        System.out.println("after pokes: " + pokes.toString());
 
         currentTable.setCurrentEle(this, poke);
 
@@ -442,6 +457,7 @@ public class User implements Comparable<User> {
         List<Map<String, Object>> choices = new ArrayList<>();
 
         if (canHU(poke)) {
+            System.out.println("can hu pokes ------> " + this.pokes.toString() + "    poke    " + poke);
             Map<String, Object> choiceMap = new HashMap<>();
             choiceMap.put("type", CommonConstant.ACTION_TYPE.HU);
             Byte[] pokes = new Byte[1];
@@ -561,7 +577,7 @@ public class User implements Comparable<User> {
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
     }
 
-    private void giveUpPoke() {
+     public void giveUpPoke() {
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         currentTable.nextStep();
@@ -577,17 +593,20 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_STAND_UP, data);
 
+
+        currentTable.removeUser(this);
         clear();
+
     }
 
 
     private void autoPlay() {
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 if (!shouldCatch()) {
-                    Byte poke = pokes.remove(pokes.size() - 1);
-                    playCard(poke);
+                    playCard(null);
                 }
             }
         }, CommonConstant.GAP_TIME);
@@ -595,6 +614,7 @@ public class User implements Comparable<User> {
     }
 
     void autoGiveUpPoke() {
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -606,18 +626,22 @@ public class User implements Comparable<User> {
 
     public static void main(String[] args) {
 
-        Byte[] bytes = {0x01, 0x01, 0x1, 0x01, 0x04, 0x04, 0x07, 0x07, 0x08, 0x09, 0x09, 0x09, 0x09};
+        List pokes = new ArrayList(Arrays.asList(new Byte[]{5, 37, 17, 53, 18, 34, 4, 53, 21, 39, 3, 24, 6}));
 
-        List<Byte> bs = Arrays.asList(bytes);
+        pokes.removeAll(new ArrayList(Arrays.asList(new Byte[]{3, 24, 6})));
 
-        System.out.println(bs.indexOf((byte) 1));
+        System.out.println(pokes.toString());
 
-        User user = new User(Arrays.asList(bytes));
 
-        System.out.println(user.shouldCatch());
 
-        System.out.println(user.canHU((byte) 0x08));
 
+        User user = new User(pokes);
+
+        System.out.println(user.canHU((byte) 17));
+        System.out.println(user.canGang((byte) 17));
+
+
+        System.out.println(54 > 0x31);
     }
 
 

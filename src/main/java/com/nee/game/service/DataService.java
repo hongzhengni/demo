@@ -8,6 +8,7 @@ import com.nee.game.data.entities.Params;
 import com.nee.game.data.entities.Table;
 import com.nee.game.data.entities.User;
 import com.nee.game.uitls.RevMsgUtils;
+import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -134,6 +135,7 @@ public class DataService {
         User currentUser = socketUserMap.get(netSocket);
         Table currentTable = tables.get(currentUser.getTableId());
 
+        System.out.println("user ready -------> currentUser: " + Json.encode(currentUser));
         currentTable.tache = CommonConstant.TABLE_TACHE.READY;
         currentUser.ready();
     }
@@ -185,6 +187,11 @@ public class DataService {
         currentUser.huCard(poke);
     }
 
+    void giveUpCard(NetSocket netSocket) {
+        User currentUser = socketUserMap.get(netSocket);
+        currentUser.giveUpPoke();
+    }
+
     /**
      * 离开房间
      *
@@ -205,4 +212,6 @@ public class DataService {
 
         socketUserMap.remove(netSocket);
     }
+
+
 }

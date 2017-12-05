@@ -66,6 +66,9 @@ public class GameService {
                     case CmdConstant.HU_CARD:
                         dataService.huCard(netSocket, request.getParams());
                         break;
+                    case CmdConstant.GIVE_UP_CARD:
+                        dataService.giveUpCard(netSocket);
+                        break;
                     default:
                         System.out.println("bad request");
                 }

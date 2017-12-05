@@ -1,6 +1,5 @@
 package com.nee.game.data.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.service.CardService;
@@ -24,6 +23,7 @@ public class Table {
 
     private User currentActionUser;
     private Byte currentPoke;
+    private Timer timer = new Timer();
 
     void setCurrentEle(User user, Byte poke) {
         this.currentActionUser = user;
@@ -32,10 +32,7 @@ public class Table {
 
 
     private CardService cardService;
-
-    @JsonIgnore
     public int tache = 0;
-
     private int gameRound = 0;
 
     public List<User> getUsers() {
@@ -79,7 +76,6 @@ public class Table {
                 map.put("avatarUrl", user.getAvatarUrl());
                 map.put("tableId", tableId);
 
-
                 RevMsgUtils.revMsg(DataService.users.values(), CmdConstant.BROADCAST_SIT_DOWN, map);
                 break;
             }
@@ -118,7 +114,7 @@ public class Table {
         for (int i = 0; i < maxCount; i++) {
             users.add(i, null);
         }
-        Timer timer = new Timer();
+
         timer.schedule(new AutoExecuteTask(), 1000, 1000);
     }
 
@@ -132,7 +128,7 @@ public class Table {
         return count;
     }
 
-    public int getGameRound() {
+    int getGameRound() {
         return gameRound;
     }
 
@@ -148,7 +144,7 @@ public class Table {
         this.maxGameRound = maxGameRound;
     }
 
-    public int getMaxGameRound() {
+    int getMaxGameRound() {
         return maxGameRound;
     }
 
@@ -160,7 +156,7 @@ public class Table {
         return radio;
     }
 
-    public List<User> getHuUsers() {
+    List<User> getHuUsers() {
         return huUsers;
     }
 
@@ -184,36 +180,43 @@ public class Table {
 
     void nextStep() {
 
+        System.out.println("1");
+
         if (hu_tasks.size() == 0) {
             huUsers.clear();
         }
         if (hu_tasks.size() > 0) {
+            System.out.println("2");
             hu_tasks.forEach(single -> {
                 Integer userId = (Integer) single.get("userId");
                 User huUser = DataService.users.get(userId);
                 huUsers.add(huUser);
                 RevMsgUtils.revMsg(huUser, CmdConstant.REV_ACTION_CARD, single);
-
                 huUser.autoGiveUpPoke();
             });
             hu_tasks.clear();
         } else if (action_tasks.size() > 0) {
+            System.out.println("3");
             Map<String, Object> single = action_tasks.remove(0);
             Integer userId = (Integer) single.get("userId");
             User actionUser = DataService.users.get(userId);
             RevMsgUtils.revMsg(actionUser, CmdConstant.REV_ACTION_CARD, single);
             actionUser.autoGiveUpPoke();
         } else {
+            System.out.println("5");
             User nextUser = getNextUser(currentActionUser);
 
             Map<String, Object> chi_poke_map = nextUser.canChi(currentPoke);
             if (chi_poke_map == null) {
+                System.out.println("6");
                 nextUser.catchCard();
             } else {
+                System.out.println("7");
                 RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
                 nextUser.autoGiveUpPoke();
             }
         }
+        System.out.println("8");
     }
 
     private User getNextUser(User user) {
@@ -223,6 +226,78 @@ public class Table {
         }
 
         return users.get(nextActionSeatId);
+    }
+
+    private void startGame() {
+        cardService.initCard(tableId);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("currentGameRound", gameRound);
+        List<Map<String, Object>> userMaps = new ArrayList<>();
+        users.stream().filter(Objects::nonNull)
+                .forEach(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("userId", user.getUserId());
+                    userMap.put("seatId", user.getSeatId());
+                    userMap.put("hog", user.getHog());
+                    userMaps.add(userMap);
+                });
+
+        data.put("users", userMaps);
+        RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_START_GAME, data);
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                users.stream().filter(Objects::nonNull)
+                        .forEach(user -> {
+                            cardService.dealCards(user, 13);
+                            Map<String, Object> userMap = new HashMap<>();
+                            userMap.put("currentGameRound", gameRound);
+                            userMap.put("userId", user.getUserId());
+                            userMap.put("seatId", user.getSeatId());
+                            userMap.put("hog", user.getHog());
+                            userMap.put("pokes", user.getPokes());
+                            RevMsgUtils.revMsg(user, CmdConstant.REV_START_GAME, userMap);
+                            user.setStatus(CommonConstant.USER_STATUS.PLAYING);
+                        });
+            }
+        }, 2000);
+
+
+    }
+
+    private void createHog() {
+        Random random = new Random();
+        int seatId = random.nextInt(4);
+        User hogUser = users.get(seatId);
+        hogUser.setHog(1);
+        int d1 = 0, d2 = 0;
+        while (d1 + d2 < 6) {
+            d1 = random.nextInt(6) + 1;
+            d2 = random.nextInt(6) + 1;
+        }
+
+        Map<String, Integer> diceMap = new HashMap<>();
+        diceMap.put("userId", hogUser.getUserId());
+        diceMap.put("dice1", d1);
+        diceMap.put("dice2", d2);
+
+        RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_DICE, diceMap);
+    }
+
+    private boolean hasHog() {
+        for (User user : users) {
+            if (user.getHog() == 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void removeUser(User user) {
+
+        users.set(user.getSeatId(), null);
     }
 
     private class AutoExecuteTask extends TimerTask {
@@ -241,61 +316,25 @@ public class Table {
                 users.stream().filter(user -> user.getNetSocket() == null).forEach(User::ready);
                 // all people are ready
                 if (readyCount() == maxCount) {
-                    Random random = new Random();
-                    int seatId = random.nextInt(4);
-                    User hogUser = users.get(seatId);
-                    hogUser.setHog(1);
-                    int d1 = 0, d2 = 0;
-                    while (d1 + d2 < 6) {
-                        d1 = random.nextInt(6) + 1;
-                        d2 = random.nextInt(6) + 1;
+                    if (!hasHog()) {
+                        createHog();
                     }
+                    startGame();
 
-                    Map<String, Integer> diceMap = new HashMap<>();
-                    diceMap.put("userId", hogUser.getUserId());
-                    diceMap.put("dice1", d1);
-                    diceMap.put("dice2", d2);
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            System.out.println("find hog of user --> start ");
+                            users.stream().filter(Objects::nonNull)
+                                    .forEach(user -> {
+                                        System.out.println("user id is: " + user.getUserId() + " , hog: " + user.getHog());
+                                        if (user.getHog() == 1) {
+                                            user.catchCard();
+                                        }
+                                    });
+                        }
+                    }, 2200);
 
-                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_USER_DICE, diceMap);
-
-                    cardService.initCard(tableId);
-
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("currentGameRound", gameRound);
-                    List<Map<String, Object>> userMaps = new ArrayList<>();
-                    users.stream().filter(Objects::nonNull)
-                            .forEach(user -> {
-                                Map<String, Object> userMap = new HashMap<>();
-                                userMap.put("userId", user.getUserId());
-                                userMap.put("seatId", user.getSeatId());
-                                userMap.put("hog", user.getHog());
-                                userMaps.add(userMap);
-                            });
-
-                    data.put("users", userMaps);
-                    RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_START_GAME, data);
-
-                    users.stream().filter(Objects::nonNull)
-                            .forEach(user -> {
-                                cardService.dealCards(user, 13);
-                                Map<String, Object> userMap = new HashMap<>();
-                                userMap.put("currentGameRound", gameRound);
-                                userMap.put("userId", user.getUserId());
-                                userMap.put("seatId", user.getSeatId());
-                                userMap.put("hog", user.getHog());
-                                userMap.put("pokes", user.getPokes());
-                                RevMsgUtils.revMsg(user, CmdConstant.REV_START_GAME, userMap);
-                                user.setStatus(CommonConstant.USER_STATUS.PLAYING);
-                            });
-
-                    System.out.println("find hog of user --> start ");
-                    users.stream().filter(Objects::nonNull)
-                            .forEach(user -> {
-                                System.out.println("user id is: " + user.getUserId() + " , hog: " + user.getHog());
-                                if (user.getHog() == 1) {
-                                    user.catchCard();
-                                }
-                            });
 
                 }
 
