@@ -209,7 +209,16 @@ public class User implements Comparable<User> {
 
     boolean canHU(Byte poke) {
 
-        return sevenPairHu(poke) || commonHu(poke);
+        countMap.clear();
+        List<Byte> n_p = new ArrayList<>(pokes);
+        n_p.add(poke);
+
+        n_p.forEach(p -> {
+            countMap.putIfAbsent(p, 0);
+            countMap.put(p, countMap.get(p) + 1);
+        });
+
+        return combineYoriko(n_p);
     }
 
     private static boolean huPaiPanDin(List<Byte> pokes) {
@@ -239,28 +248,6 @@ public class User implements Comparable<User> {
         }
     }
 
-    private boolean commonHu(byte poke) {
-        List<Byte> pairs = new ArrayList<>(this.pokes);
-
-        pairs.add(poke);
-
-        if (cmnHu(pairs)) {
-            return true;
-        }
-
-        while (pairs.indexOf(PokeData.BLANK) >= 0) {
-            int index = pairs.indexOf(PokeData.BLANK);
-            for (int i = 0; i < PokeData._Mahjong.length - 1; i++) {
-                pairs.set(index, PokeData._Mahjong[i]);
-                if (cmnHu(pairs)) {
-                    return true;
-                }
-            }
-
-        }
-        return false;
-    }
-
     private boolean cmnHu(List<Byte> pokes) {
         List<Byte> pairs = new ArrayList<>(pokes);
         //只有两张牌
@@ -269,6 +256,13 @@ public class User implements Comparable<User> {
         }
         //先排序
         Collections.sort(pairs);
+
+        Map<Byte, Integer> countMap = new HashMap<>();
+
+        for (Byte pair : pairs) {
+            countMap.putIfAbsent(pair, 0);
+            countMap.put(pair, countMap.get(pair) + 1);
+        }
         Set<Byte> keys = countMap.keySet();
         for (Byte key : keys) {
             if (countMap.get(key) > 1) {
@@ -284,35 +278,29 @@ public class User implements Comparable<User> {
         return false;
     }
 
-    private boolean sevenPairHu(Byte poke) {
-        countMap.clear();
-        List<Byte> n_p = new ArrayList<>();
-        n_p.addAll(pokes);
-        n_p.add(poke);
+    private boolean combineYoriko(List<Byte> pokes) {
 
-        n_p.forEach(p -> {
-            countMap.putIfAbsent(p, 0);
-            countMap.put(p, countMap.get(p) + 1);
-        });
-
-        if (sevenPair(n_p)) {
+        if (sevenPairHu(pokes) || cmnHu(pokes)) {
             return true;
         }
-        while (n_p.indexOf(PokeData.BLANK) >= 0) {
-            int idx = n_p.indexOf(PokeData.BLANK);
+        List<Byte> n_n = new ArrayList<>(pokes);
+        if (n_n.indexOf(PokeData.BLANK) >= 0) {
+            int idx = n_n.indexOf(PokeData.BLANK);
             for (int i = 0; i < PokeData._Mahjong.length - 1; i++) {
-                n_p.set(idx, PokeData._Mahjong[i]);
-                if (sevenPair(n_p)) {
+                n_n.set(idx, PokeData._Mahjong[i]);
+                if (combineYoriko(n_n)) {
                     return true;
-                }
+                };
             }
         }
+
         return false;
     }
 
-    private boolean sevenPair(List<Byte> pokes) {
+    private boolean sevenPairHu(List<Byte> pokes) {
         List<Byte> n_p = new ArrayList<>(pokes);
         Collections.sort(n_p);
+
         int j;
         for (j = 0; j < n_p.size() - 1; j += 2) {
             if (!Objects.equals(n_p.get(j), n_p.get(j + 1))) {
@@ -668,11 +656,11 @@ public class User implements Comparable<User> {
 
     public static void main(String[] args) {
 
-        List pokes = new ArrayList(Arrays.asList(new Byte[]{49, 55, 19, 1, 52, 33, 55, 5, 37, 41, 20, 2, 55}));
+        List pokes = new ArrayList(Arrays.asList(new Byte[]{39, 55, 38, 36}));
 
         User user = new User(pokes);
 
-        System.out.println(user.canHU((byte) 51));
+        System.out.println(user.canHU((byte) 24));
 
     }
 

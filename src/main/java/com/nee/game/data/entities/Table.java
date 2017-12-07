@@ -5,6 +5,7 @@ import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.service.CardService;
 import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
+import io.vertx.core.json.Json;
 
 import java.util.*;
 
@@ -21,6 +22,7 @@ public class Table {
     private List<Map<String, Object>> action_tasks = new ArrayList<>();
     private List<User> huUsers = new ArrayList<>();
 
+    private User currentChiUser;
     private User currentActionUser;
     private Byte currentPoke;
     private Timer timer = new Timer();
@@ -29,7 +31,6 @@ public class Table {
         this.currentActionUser = user;
         this.currentPoke = poke;
     }
-
 
     private CardService cardService;
     public int tache = 0;
@@ -205,15 +206,16 @@ public class Table {
         } else {
             System.out.println("5");
             User nextUser = getNextUser(currentActionUser);
-
             Map<String, Object> chi_poke_map = nextUser.canChi(currentPoke);
-            if (chi_poke_map == null) {
+            if ((currentChiUser == null || nextUser != currentChiUser) && chi_poke_map != null) {
                 System.out.println("6");
-                nextUser.catchCard();
-            } else {
-                System.out.println("7");
+                currentChiUser = nextUser;
                 RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
                 nextUser.autoGiveUpPoke();
+            } else {
+                System.out.println("7");
+                currentChiUser = null;
+                nextUser.catchCard();
             }
         }
         System.out.println("8");
