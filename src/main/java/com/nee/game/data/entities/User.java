@@ -2,6 +2,7 @@ package com.nee.game.data.entities;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.nee.game.common.PokeData;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.common.constant.ErrorCodeEnum;
@@ -77,6 +78,11 @@ public class User implements Comparable<User> {
         this.setStatus(0);
         this.tableId = 0;
         this.seatId = 0;
+        try {
+            timer.cancel();
+        } catch (Exception e) {
+            System.out.println("It does not matter");
+        }
     }
 
     private int countPokes() {
@@ -237,13 +243,32 @@ public class User implements Comparable<User> {
         List<Byte> pairs = new ArrayList<>(this.pokes);
 
         pairs.add(poke);
+
+        if (cmnHu(pairs)) {
+            return true;
+        }
+
+        while (pairs.indexOf(PokeData.BLANK) >= 0) {
+            int index = pairs.indexOf(PokeData.BLANK);
+            for (int i = 0; i < PokeData._Mahjong.length - 1; i++) {
+                pairs.set(index, PokeData._Mahjong[i]);
+                if (cmnHu(pairs)) {
+                    return true;
+                }
+            }
+
+        }
+        return false;
+    }
+
+    private boolean cmnHu(List<Byte> pokes) {
+        List<Byte> pairs = new ArrayList<>(pokes);
         //只有两张牌
         if (pairs.size() == 2) {
             return pairs.get(0).equals(pairs.get(1));
         }
         //先排序
         Collections.sort(pairs);
-
         Set<Byte> keys = countMap.keySet();
         for (Byte key : keys) {
             if (countMap.get(key) > 1) {
@@ -256,7 +281,6 @@ public class User implements Comparable<User> {
                 }
             }
         }
-
         return false;
     }
 
@@ -265,19 +289,37 @@ public class User implements Comparable<User> {
         List<Byte> n_p = new ArrayList<>();
         n_p.addAll(pokes);
         n_p.add(poke);
-        Collections.sort(n_p);
 
         n_p.forEach(p -> {
             countMap.putIfAbsent(p, 0);
             countMap.put(p, countMap.get(p) + 1);
         });
-        for (int i = 0; i < n_p.size() - 1; i += 2) {
-            if (!Objects.equals(n_p.get(i), n_p.get(i + 1))) {
-                return false;
+
+        if (sevenPair(n_p)) {
+            return true;
+        }
+        while (n_p.indexOf(PokeData.BLANK) >= 0) {
+            int idx = n_p.indexOf(PokeData.BLANK);
+            for (int i = 0; i < PokeData._Mahjong.length - 1; i++) {
+                n_p.set(idx, PokeData._Mahjong[i]);
+                if (sevenPair(n_p)) {
+                    return true;
+                }
             }
         }
+        return false;
+    }
 
-        return true;
+    private boolean sevenPair(List<Byte> pokes) {
+        List<Byte> n_p = new ArrayList<>(pokes);
+        Collections.sort(n_p);
+        int j;
+        for (j = 0; j < n_p.size() - 1; j += 2) {
+            if (!Objects.equals(n_p.get(j), n_p.get(j + 1))) {
+                break;
+            }
+        }
+        return j >= (n_p.size() - 1);
     }
 
 
@@ -439,7 +481,7 @@ public class User implements Comparable<User> {
         System.out.println("before pokes is: " + pokes.toString());
         int index = this.pokes.indexOf(poke);
         System.out.println("index: " + index);
-        if (index > 0) {
+        if (index >= 0) {
             this.pokes.remove(index);
         }
         System.out.println("after pokes: " + pokes.toString());
@@ -577,7 +619,7 @@ public class User implements Comparable<User> {
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
     }
 
-     public void giveUpPoke() {
+    public void giveUpPoke() {
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         currentTable.nextStep();
@@ -626,22 +668,12 @@ public class User implements Comparable<User> {
 
     public static void main(String[] args) {
 
-        List pokes = new ArrayList(Arrays.asList(new Byte[]{5, 37, 17, 53, 18, 34, 4, 53, 21, 39, 3, 24, 6}));
-
-        pokes.removeAll(new ArrayList(Arrays.asList(new Byte[]{3, 24, 6})));
-
-        System.out.println(pokes.toString());
-
-
-
+        List pokes = new ArrayList(Arrays.asList(new Byte[]{49, 55, 19, 1, 52, 33, 55, 5, 37, 41, 20, 2, 55}));
 
         User user = new User(pokes);
 
-        System.out.println(user.canHU((byte) 17));
-        System.out.println(user.canGang((byte) 17));
+        System.out.println(user.canHU((byte) 51));
 
-
-        System.out.println(54 > 0x31);
     }
 
 
