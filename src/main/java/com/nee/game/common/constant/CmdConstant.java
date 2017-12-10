@@ -12,7 +12,7 @@ public class CmdConstant {
     public final static int GANG_CARD = 0x100D; //杠
     public final static int CHI_CARD = 0x100F; //吃
     public final static int HU_CARD = 0x10021; //胡
-    public final static int GIVE_UP_CARD = 0x10023; //
+    public final static int GIVE_UP_CARD = 0x10023; //弃
 
     public final static int REV_HALL_INFO = 0x2000; //大厅信息
     public final static int REV_ROOM_INFO = 0x2001; //房间信息

@@ -603,6 +603,7 @@ public class User implements Comparable<User> {
             userMap.put("pokes", user.pokes);
             data.add(userMap);
         });
+        currentTable.huCard();
 
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
     }

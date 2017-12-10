@@ -182,6 +182,9 @@ public class DataService {
     void huCard(NetSocket netSocket, Params params) {
 
         User currentUser = socketUserMap.get(netSocket);
+        if (params == null) {
+            throw new BusinessException(ErrorCodeEnum.ERROR_PARAM);
+        }
         Byte poke = params.getPoke();
 
         currentUser.huCard(poke);

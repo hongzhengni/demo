@@ -232,7 +232,7 @@ public class Table {
 
     private void startGame() {
         cardService.initCard(tableId);
-
+        gameRound++;
         Map<String, Object> data = new HashMap<>();
         data.put("currentGameRound", gameRound);
         List<Map<String, Object>> userMaps = new ArrayList<>();
@@ -300,6 +300,25 @@ public class Table {
     void removeUser(User user) {
 
         users.set(user.getSeatId(), null);
+    }
+
+    void huCard() {
+
+        users.forEach(u -> {
+            u.setHog(0);
+            if (huUsers.contains(u)) {
+
+            }
+        });
+        huUsers.get(0).setHog(1);
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                tache = CommonConstant.TABLE_TACHE.READY;
+            }
+        }, 5000);
+
     }
 
     private class AutoExecuteTask extends TimerTask {
