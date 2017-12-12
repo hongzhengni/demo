@@ -44,6 +44,8 @@ public class CardService {
         return Byte.valueOf(redisService.lpop(prex + tableId));
     }
 
+
+
     // init card
     public void dealCards(User user, int base) {
 

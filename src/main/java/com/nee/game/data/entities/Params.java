@@ -21,6 +21,8 @@ public class Params {
 
     private int location;
 
+    private String content;
+
     public Integer getTableId() {
         return tableId;
     }
@@ -83,5 +85,13 @@ public class Params {
 
     public int getMaxGround() {
         return maxGround;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 }

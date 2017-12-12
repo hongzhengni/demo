@@ -69,6 +69,15 @@ public class GameService {
                     case CmdConstant.GIVE_UP_CARD:
                         dataService.giveUpCard(netSocket);
                         break;
+                    case CmdConstant.DISMISS:
+                        dataService.dismiss(netSocket);
+                        break;
+                    case CmdConstant.CHAT:
+                        dataService.chat(netSocket, request.getParams());
+                        break;
+                    case CmdConstant.APPLY_SETTLE:
+                        dataService.applySettle(netSocket);
+                        break;
                     default:
                         System.out.println("bad request");
                 }

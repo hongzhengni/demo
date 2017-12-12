@@ -15,6 +15,7 @@ public class Table {
     private static final int maxCount = 4;
     private int maxGameRound = 3;
     private int radio = 8;
+    private int invalidCount = 0;
     private int tableId;
     private List<User> users;
 
@@ -50,6 +51,13 @@ public class Table {
         }
     }
 
+    int getCurrentActionSeatId() {
+        return currentActionUser.getSeatId();
+    }
+
+    int getInvalidCount() {
+        return invalidCount;
+    }
 
     public int getTableId() {
         return tableId;
@@ -117,6 +125,23 @@ public class Table {
         }
 
         timer.schedule(new AutoExecuteTask(), 1000, 1000);
+    }
+
+    private boolean canDismiss() {
+        int count = 0;
+        int dismissCount = 0;
+        for (User user : users) {
+            if (user != null && user.getNetSocket() != null) {
+                count++;
+                if (user.isDismiss()) {
+                    dismissCount++;
+                }
+            }
+            if (dismissCount == (count - 1)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int getRealCount() {
@@ -310,7 +335,7 @@ public class Table {
 
             }
         });
-        huUsers.get(0).setHog(1);
+        //huUsers.get(0).setHog(1);
 
         timer.schedule(new TimerTask() {
             @Override
@@ -325,8 +350,6 @@ public class Table {
 
         @Override
         public void run() {
-            // TODO all people offline
-
             if (!isFull() || isEnd()) {
                 return;
             }
@@ -356,9 +379,13 @@ public class Table {
                         }
                     }, 2200);
 
-
                 }
 
+            } else if (tache == CommonConstant.TABLE_TACHE.PLAYING) {
+                if (canDismiss()) {
+                    users.stream().filter(user -> user != null)
+                            .forEach(User::standUp);
+                }
             }
 
         }

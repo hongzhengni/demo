@@ -41,15 +41,20 @@ public class DataService {
         return table;
     }*/
 
-    //登陆处理
-    void loginHall(NetSocket netSocket, Params params) {
-
+    private void initTable() {
         if (tables.size() == 0) {
             tables.put(1, new Table(1, cardService));
             tables.put(2, new Table(2, cardService));
             tables.put(3, new Table(3, cardService));
             tables.put(4, new Table(4, cardService));
         }
+    }
+
+
+    //登陆处理
+    void loginHall(NetSocket netSocket, Params params) {
+
+        initTable();
 
         int userId = params.getUserId();
         User u;
@@ -126,7 +131,7 @@ public class DataService {
             throw new BusinessException("请重新登录");
         }
 
-        currentUser.sitDown(params.getTableId());
+        currentUser.sitDown(params.getTableId(), params.getSeatId());
     }
 
     //玩家准备
@@ -207,6 +212,27 @@ public class DataService {
         currentUser.standUp();
     }
 
+    void dismiss(NetSocket netSocket) {
+
+        User currentUser = socketUserMap.get(netSocket);
+
+        currentUser.dismiss();
+    }
+
+    void applySettle(NetSocket netSocket) {
+        User currentUser = socketUserMap.get(netSocket);
+
+        currentUser.applySettle();
+    }
+
+    void chat(NetSocket netSocket, Params params) {
+
+        User currentUser = socketUserMap.get(netSocket);
+        currentUser.chat(params.getContent());
+
+
+    }
+
     void closeConnect(NetSocket netSocket) {
         User user = socketUserMap.get(netSocket);
         if (user != null) {
@@ -215,6 +241,5 @@ public class DataService {
 
         socketUserMap.remove(netSocket);
     }
-
 
 }
