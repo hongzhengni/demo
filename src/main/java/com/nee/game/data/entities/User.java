@@ -446,7 +446,7 @@ public class User implements Comparable<User> {
             data.put("currentGameRound", currentTable.getGameRound());
             data.put("pokes", this.pokes);
             data.put("gangPokes", this.gang_pokes);
-            data.put("PengPokes", this.pen_pokes);
+            data.put("pengPokes", this.pen_pokes);
             data.put("chiPokes", this.chi_pokes);
             data.put("playPokes", this.play_pokes);
             data.put("currentActionSeatId", currentTable.getCurrentActionSeatId());
@@ -462,11 +462,11 @@ public class User implements Comparable<User> {
                         userMap.put("status", user.getStatus());
                         userMap.put("nick", user.getNick());
                         userMap.put("money", user.getMoney());
-                        userMap.put("pokes", user.pokes);
-                        userMap.put("gangPokes", user.gang_pokes);
-                        userMap.put("PengPokes", user.pen_pokes);
-                        userMap.put("chiPokes", user.chi_pokes);
-                        userMap.put("playPokes", user.play_pokes);
+                        userMap.put("pokes", user.pokes.size());
+                        userMap.put("gangPokes", user.gang_pokes.size());
+                        userMap.put("pengPokes", user.pen_pokes.size());
+                        userMap.put("chiPokes", user.chi_pokes.size());
+                        userMap.put("playPokes", user.play_pokes.size());
                         userList.add(userMap);
                     });
             data.put("users", userList);
@@ -704,8 +704,11 @@ public class User implements Comparable<User> {
         currentTable.getUsers().stream().filter(Objects::nonNull)
                 .forEach(user -> {
                     Map<String, Integer> userMap = new HashMap<>();
+                    userMap.put("userId", user.getUserId());
+                    userMap.put("seatId", user.getSeatId());
                     userMap.put("winCount", winCount);
                     userMap.put("invalidCount", currentTable.getInvalidCount());
+                    userMap.put("loseCount", currentTable.getGameRound() - winCount - currentTable.getInvalidCount());
                     userMaps.add(userMap);
                 });
 
@@ -724,6 +727,14 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_CHAT, data);
 
+    }
+
+    public void disConnect() {
+        Table currentTable = DataService.tables.get(tableId);
+        Map<String, Integer> data = new HashMap<>();
+        data.put("userId", this.userId);
+        data.put("seatId", this.seatId);
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
     }
 
     private void autoPlay() {

@@ -237,9 +237,11 @@ public class DataService {
         User user = socketUserMap.get(netSocket);
         if (user != null) {
             user.setNetSocket(null);
+           user.disConnect();
         }
 
         socketUserMap.remove(netSocket);
+
     }
 
 }
