@@ -470,6 +470,12 @@ public class User implements Comparable<User> {
                         userList.add(userMap);
                     });
             data.put("users", userList);
+
+            Map<String, Integer> data2 = new HashMap<>();
+            data2.put("userId", this.userId);
+            data2.put("seatId", this.seatId);
+
+            RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_RECONNECT, data2);
         }
 
 

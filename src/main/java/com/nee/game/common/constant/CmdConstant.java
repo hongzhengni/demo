@@ -35,6 +35,8 @@ public class CmdConstant {
     public final static int REV_APPLY_SETTLE = 0x20027; //申请结算广播
     public final static int BROADCAST_CHAT = 0x20029; //聊天广播
     public final static int BROADCAST_DISCONNECT = 0x2002B; //
+    public final static int BROADCAST_RECONNECT = 0x2002D; //
+
 
     public final static byte WIK_LEFT = 0x01;
     public final static byte WIK_CENTER = 0x02;
