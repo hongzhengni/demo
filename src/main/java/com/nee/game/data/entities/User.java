@@ -713,7 +713,7 @@ public class User implements Comparable<User> {
                 });
 
         data.put("users", userMaps);
-        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_CHAT, data);
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.REV_APPLY_SETTLE, data);
     }
 
     public void chat(String content) {
