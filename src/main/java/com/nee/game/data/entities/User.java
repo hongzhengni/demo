@@ -704,8 +704,11 @@ public class User implements Comparable<User> {
         currentTable.getUsers().stream().filter(Objects::nonNull)
                 .forEach(user -> {
                     Map<String, Integer> userMap = new HashMap<>();
+                    userMap.put("userId", user.getUserId());
+                    userMap.put("seatId", user.getSeatId());
                     userMap.put("winCount", winCount);
                     userMap.put("invalidCount", currentTable.getInvalidCount());
+                    userMap.put("loseCount", currentTable.getGameRound() - winCount - currentTable.getInvalidCount());
                     userMaps.add(userMap);
                 });
 
@@ -724,6 +727,14 @@ public class User implements Comparable<User> {
 
         RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_CHAT, data);
 
+    }
+
+    public void disConnect() {
+        Table currentTable = DataService.tables.get(tableId);
+        Map<String, Integer> data = new HashMap<>();
+        data.put("userId", this.userId);
+        data.put("seatId", this.seatId);
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
     }
 
     private void autoPlay() {
