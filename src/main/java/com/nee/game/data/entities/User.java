@@ -27,7 +27,6 @@ public class User implements Comparable<User> {
 
     private String avatarUrl;
 
-    private int originalMoney;
     private int status;//0未准备状态 1准备状态 2在玩状态 3旁观者
 
     private int seatId;
@@ -87,8 +86,8 @@ public class User implements Comparable<User> {
     private void clear() {
         this.setMoney(0);
         this.setStatus(0);
-        this.tableId = 0;
-        this.seatId = 0;
+        this.tableId = -1;
+        this.seatId = -1;
         this.dismiss = false;
         try {
             timer.cancel();
@@ -408,9 +407,43 @@ public class User implements Comparable<User> {
         return map;
     }
 
+    public void loginHall() {
+
+        Map<String, Object> data = new HashMap<>();
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("userId", userId);
+        if (tableId != -1) {
+            userInfo.put("tableId", tableId);
+        }
+        if (seatId != -1) {
+            userInfo.put("seatId", seatId);
+        }
+        data.put("user", userInfo);
+
+        List<Map<String, Object>> tableMaps = new ArrayList<>();
+        DataService.tables.values().forEach(table -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("tableId", table.getTableId());
+            List<Map<String, Object>> userMaps = new ArrayList<>();
+            table.getUsers().stream().filter(Objects::nonNull)
+                    .forEach(user -> {
+                        Map<String, Object> userMap = new HashMap<>();
+                        userMap.put("userId", user.getUserId());
+                        userMap.put("nick", user.getNick());
+                        userMaps.add(userMap);
+                    });
+            map.put("users", userMaps);
+            tableMaps.add(map);
+        });
+
+        data.put("tables", tableMaps);
+
+        RevMsgUtils.revMsg(this, CmdConstant.REV_HALL_INFO, data);
+    }
+
 
     public void ready() {
-        System.out.println("tableId : " + tableId);
         Table currentTable = DataService.tables.get(tableId);
 
         System.out.println("current table: " + Json.encode(currentTable));
@@ -477,10 +510,10 @@ public class User implements Comparable<User> {
                         userMap.put("status", user.getStatus());
                         userMap.put("nick", user.getNick());
                         userMap.put("money", user.getMoney());
-                        userMap.put("pokes", user.pokes.size());
-                        userMap.put("gangPokes", user.gang_pokes.size());
-                        userMap.put("pengPokes", user.pen_pokes.size());
-                        userMap.put("chiPokes", user.chi_pokes.size());
+                        userMap.put("pokes", user.pokes == null? 0 : user.pokes.size());
+                        userMap.put("gangPokes", user.gang_pokes == null? 0 : user.gang_pokes.size());
+                        userMap.put("pengPokes", user.pen_pokes == null? 0: user.pen_pokes.size());
+                        userMap.put("chiPokes", user.chi_pokes == null? 0 : user.chi_pokes.size());
                         userMap.put("playPokes", user.play_pokes.size());
                         userList.add(userMap);
                     });
@@ -823,6 +856,7 @@ public class User implements Comparable<User> {
         System.out.println(user.canHU((byte) 24));
 
     }
+
 
 }
 

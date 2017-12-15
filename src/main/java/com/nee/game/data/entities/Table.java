@@ -138,7 +138,7 @@ public class Table {
             }
 
         }
-        return dismissCount == (count - 1);
+        return dismissCount >= (count - 1);
     }
 
     private int getRealCount() {

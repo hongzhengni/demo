@@ -69,34 +69,10 @@ public class DataService {
         u = users.get(userId);
         u.setNetSocket(netSocket);
 
-        Map<String, Object> data = new HashMap<>();
-
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("userId", u.getUserId());
-
-        data.put("user", userInfo);
-
-        List<Map<String, Object>> tableMaps = new ArrayList<>();
-        tables.values().forEach(table -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("tableId", table.getTableId());
-            List<Map<String, Object>> userMaps = new ArrayList<>();
-            table.getUsers().stream().filter(Objects::nonNull)
-                    .forEach(user -> {
-                        Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", user.getUserId());
-                        userMap.put("nick", user.getNick());
-                        userMaps.add(userMap);
-                    });
-            map.put("users", userMaps);
-            tableMaps.add(map);
-        });
-
-        data.put("tables", tableMaps);
-
         socketUserMap.put(netSocket, u);
 
-        RevMsgUtils.revMsg(u, CmdConstant.REV_HALL_INFO, data);
+        u.loginHall();
+
     }
 
     void createRoom(NetSocket netSocket, Params params) {
