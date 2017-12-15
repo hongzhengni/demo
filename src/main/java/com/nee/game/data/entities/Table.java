@@ -136,11 +136,9 @@ public class Table {
                     dismissCount++;
                 }
             }
-            if (dismissCount == (count - 1)) {
-                return true;
-            }
+
         }
-        return false;
+        return dismissCount == (count - 1);
     }
 
     private int getRealCount() {
@@ -381,6 +379,7 @@ public class Table {
                 }
 
             } else if (tache == CommonConstant.TABLE_TACHE.PLAYING) {
+
                 if (canDismiss()) {
                     users.stream().filter(user -> user != null)
                             .forEach(User::standUp);

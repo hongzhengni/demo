@@ -12,6 +12,7 @@ import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
+import org.apache.commons.collections.CollectionUtils;
 
 import java.util.*;
 
@@ -20,7 +21,9 @@ public class User implements Comparable<User> {
     private CardService cardService;
     private Integer userId;
     private String nick;
-    private int money = 1000;
+    private int money = 0;
+
+    private int grade = 0;
 
     private String avatarUrl;
 
@@ -33,6 +36,8 @@ public class User implements Comparable<User> {
     private boolean dismiss = false;
 
     private int winCount = 0;
+
+    private int serialHu = 0;
 
     private List<Byte> pokes;
 
@@ -94,11 +99,21 @@ public class User implements Comparable<User> {
     }
 
     private void clearPokes() {
-        play_pokes.clear();
-        gang_pokes.clear();
-        pen_pokes.clear();
-        chi_pokes.clear();
-        pokes.clear();
+        if (play_pokes != null) {
+            play_pokes.clear();
+        }
+        if (gang_pokes != null) {
+            gang_pokes.clear();
+        }
+        if (pen_pokes != null) {
+            pen_pokes.clear();
+        }
+        if (chi_pokes != null) {
+            chi_pokes.clear();
+        }
+        if (pokes != null) {
+            pokes.clear();
+        }
     }
 
     private int countPokes() {
@@ -188,9 +203,9 @@ public class User implements Comparable<User> {
 
     @Override
     public int compareTo(User o) {
-        if (this.money > o.money) {
+        if (this.grade > o.grade) {
             return -1;
-        } else if (this.money < o.money) {
+        } else if (this.grade < o.grade) {
             return 1;
         }
         return 0;
@@ -656,6 +671,16 @@ public class User implements Comparable<User> {
             if (currentTable.getHuUsers().contains(user)) {
                 user.pokes.add(poke);
                 userMap.put("hu", true);
+                user.serialHu++;
+                winCount++;
+
+                double grade = Math.pow(2, user.serialHu);
+                user.grade += grade * 3;
+
+                calculateGrade(currentTable, user, grade);
+
+            } else {
+                user.serialHu = 0;
             }
             userMap.put("pokes", user.pokes);
             data.add(userMap);
@@ -663,10 +688,10 @@ public class User implements Comparable<User> {
         currentTable.huCard();
 
         this.setHog(1);
-        winCount++;
 
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
     }
+
 
     public void giveUpPoke() {
         timer.cancel();
@@ -677,6 +702,8 @@ public class User implements Comparable<User> {
     public void standUp() {
 
         Table currentTable = DataService.tables.get(tableId);
+        if (currentTable == null)
+            return;
 
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
@@ -707,7 +734,10 @@ public class User implements Comparable<User> {
 
         List<Map<String, Integer>> userMaps = new ArrayList<>();
 
-        currentTable.getUsers().stream().filter(Objects::nonNull)
+        List<User> n_n = new ArrayList<>(currentTable.getUsers());
+        Collections.sort(n_n);
+
+        n_n.stream().filter(Objects::nonNull)
                 .forEach(user -> {
                     Map<String, Integer> userMap = new HashMap<>();
                     userMap.put("userId", user.getUserId());
@@ -715,6 +745,7 @@ public class User implements Comparable<User> {
                     userMap.put("winCount", winCount);
                     userMap.put("invalidCount", currentTable.getInvalidCount());
                     userMap.put("loseCount", currentTable.getGameRound() - winCount - currentTable.getInvalidCount());
+                    userMap.put("grade", user.grade);
                     userMaps.add(userMap);
                 });
 
@@ -736,11 +767,27 @@ public class User implements Comparable<User> {
     }
 
     public void disConnect() {
-        Table currentTable = DataService.tables.get(tableId);
-        Map<String, Integer> data = new HashMap<>();
-        data.put("userId", this.userId);
-        data.put("seatId", this.seatId);
-        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
+
+        if (CollectionUtils.isEmpty(this.pokes)) {
+            standUp();
+        } else {
+            Table currentTable = DataService.tables.get(tableId);
+
+            Map<String, Integer> data = new HashMap<>();
+            data.put("userId", this.userId);
+            data.put("seatId", this.seatId);
+            RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
+        }
+    }
+
+    private void calculateGrade(Table table, User user, double grade) {
+
+        if (table == null)
+            return;
+        table.getUsers().stream().filter(u -> u != user && u != null)
+                .forEach(u -> {
+                    u.grade -= grade;
+                });
     }
 
     private void autoPlay() {
