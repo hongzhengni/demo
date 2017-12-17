@@ -29,8 +29,8 @@ public class User implements Comparable<User> {
 
     private int status;//0未准备状态 1准备状态 2在玩状态 3旁观者
 
-    private int seatId;
-    private int tableId;
+    private Integer seatId;
+    private Integer tableId;
 
     private boolean dismiss = false;
 
@@ -86,8 +86,8 @@ public class User implements Comparable<User> {
     private void clear() {
         this.setMoney(0);
         this.setStatus(0);
-        this.tableId = -1;
-        this.seatId = -1;
+        this.tableId = null;
+        this.seatId = null;
         this.dismiss = false;
         try {
             timer.cancel();
@@ -413,12 +413,8 @@ public class User implements Comparable<User> {
 
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("userId", userId);
-        if (tableId != -1) {
-            userInfo.put("tableId", tableId);
-        }
-        if (seatId != -1) {
-            userInfo.put("seatId", seatId);
-        }
+        userInfo.put("tableId", tableId);
+        userInfo.put("seatId", seatId);
         data.put("user", userInfo);
 
         List<Map<String, Object>> tableMaps = new ArrayList<>();
@@ -510,11 +506,11 @@ public class User implements Comparable<User> {
                         userMap.put("status", user.getStatus());
                         userMap.put("nick", user.getNick());
                         userMap.put("money", user.getMoney());
-                        userMap.put("pokes", user.pokes == null? 0 : user.pokes.size());
-                        userMap.put("gangPokes", user.gang_pokes == null? 0 : user.gang_pokes.size());
-                        userMap.put("pengPokes", user.pen_pokes == null? 0: user.pen_pokes.size());
-                        userMap.put("chiPokes", user.chi_pokes == null? 0 : user.chi_pokes.size());
-                        userMap.put("playPokes", user.play_pokes.size());
+                        userMap.put("pokes", user.pokes == null ? 0 : user.pokes.size());
+                        userMap.put("gangPokes", user.gang_pokes);
+                        userMap.put("pengPokes", user.pen_pokes);
+                        userMap.put("chiPokes", user.chi_pokes);
+                        userMap.put("playPokes", user.play_pokes);
                         userList.add(userMap);
                     });
             data.put("users", userList);
@@ -592,7 +588,6 @@ public class User implements Comparable<User> {
         List<Map<String, Object>> choices = new ArrayList<>();
 
         if (canHU(poke)) {
-            System.out.println("can hu pokes ------> " + this.pokes.toString() + "    poke    " + poke);
             Map<String, Object> choiceMap = new HashMap<>();
             choiceMap.put("type", CommonConstant.ACTION_TYPE.HU);
             Byte[] pokes = new Byte[1];

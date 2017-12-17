@@ -71,6 +71,8 @@ public class DataService {
 
         socketUserMap.put(netSocket, u);
 
+        System.out.println("user is -----------------------------------> " + Json.encode(u) + ", userId: " + u.getUserId() + ", tableId: " + u.getTableId());
+
         u.loginHall();
 
     }
@@ -213,7 +215,7 @@ public class DataService {
         User user = socketUserMap.get(netSocket);
         if (user != null) {
             user.setNetSocket(null);
-           user.disConnect();
+            user.disConnect();
         }
 
         socketUserMap.remove(netSocket);
