@@ -6,6 +6,7 @@ import com.nee.game.service.CardService;
 import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
 
+import java.net.Inet4Address;
 import java.util.*;
 
 
@@ -27,6 +28,8 @@ public class Table {
     private Byte currentPoke;
     private Timer timer = new Timer();
 
+    private Map<Integer, Integer> pcMap = new HashMap<>();
+
     void setCurrentEle(User user, Byte poke) {
         this.currentActionUser = user;
         this.currentPoke = poke;
@@ -36,7 +39,7 @@ public class Table {
     public int tache = 0;
     private int gameRound = 0;
 
-    public List<User> getUsers() {
+    List<User> getUsers() {
         if (users == null) {
             initUsers();
         }
@@ -90,7 +93,40 @@ public class Table {
         }
     }
 
+    void configPcMap(Integer userId) {
+
+        pcMap.putIfAbsent(userId, 0);
+        if (getPcUserId().equals(userId)) {
+            pcMap.put(userId, pcMap.get(userId) + 1);
+        }
+    }
+
+    private boolean isPc() {
+        return !pcMap.isEmpty();
+    }
+
+    Integer getPcCount(Integer userId) {
+        if (pcMap.get(userId)== null)
+            return 0;
+        return pcMap.get(userId);
+    }
+
+    Integer getPcUserId() {
+        if (isPc()) {
+            for (Map.Entry<Integer, Integer> entry : pcMap.entrySet()) {
+                if (entry != null)
+                   return entry.getKey();
+            }
+        }
+        return 0;
+    }
+
+    void clearPcMap() {
+        pcMap.clear();
+    }
+
     public void addVirtualUser(int num) {
+        System.out.println(num);
         /*for (int i = 0; i < num; i++) {
             User u = new User(cardService);
             u.setUserId(DataService.users.size() + 1);
@@ -115,9 +151,10 @@ public class Table {
         return getRealCount() == maxCount;
     }
 
-    public Table(int tableId, CardService cardService) {
+    public Table(CardService cardService) {
+
         this.cardService = cardService;
-        this.tableId = tableId;
+        this.tableId = (int) ((Math.random() * 9 + 1) * 100000);
         users = new ArrayList<>();
         for (int i = 0; i < maxCount; i++) {
             users.add(i, null);
@@ -187,15 +224,16 @@ public class Table {
         User nextUser = currentActionUser;
         for (int i = 0; i < 3; i++) {
             nextUser = getNextUser(nextUser);
-
-            if (nextUser.canHU(currentPoke)) {
+            /*if (nextUser.canHU(currentPoke)) {
                 hu_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.HU, currentPoke));
-            }
-            if (nextUser.canGang(currentPoke)) {
-                action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.GANG, currentPoke));
-            }
-            if (nextUser.canPen(currentPoke)) {
-                action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.PEN, currentPoke));
+            }*/
+            if (!isPc()) {
+                if (nextUser.canGang(currentPoke)) {
+                    action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.GANG, currentPoke));
+                }
+                if (nextUser.canPen(currentPoke)) {
+                    action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.PEN, currentPoke));
+                }
             }
 
         }
@@ -203,13 +241,10 @@ public class Table {
 
     void nextStep() {
 
-        System.out.println("1");
-
         if (hu_tasks.size() == 0) {
             huUsers.clear();
         }
         if (hu_tasks.size() > 0) {
-            System.out.println("2");
             hu_tasks.forEach(single -> {
                 Integer userId = (Integer) single.get("userId");
                 User huUser = DataService.users.get(userId);
@@ -219,18 +254,15 @@ public class Table {
             });
             hu_tasks.clear();
         } else if (action_tasks.size() > 0) {
-            System.out.println("3");
             Map<String, Object> single = action_tasks.remove(0);
             Integer userId = (Integer) single.get("userId");
             User actionUser = DataService.users.get(userId);
             RevMsgUtils.revMsg(actionUser, CmdConstant.REV_ACTION_CARD, single);
             actionUser.autoGiveUpPoke();
         } else {
-            System.out.println("5");
             User nextUser = getNextUser(currentActionUser);
             Map<String, Object> chi_poke_map = nextUser.canChi(currentPoke);
-            if ((currentChiUser == null || nextUser != currentChiUser) && chi_poke_map != null) {
-                System.out.println("6");
+            if ((currentChiUser == null || nextUser != currentChiUser) && chi_poke_map != null && !isPc()) {
                 currentChiUser = nextUser;
                 RevMsgUtils.revMsg(nextUser, CmdConstant.REV_ACTION_CARD, chi_poke_map);
                 nextUser.autoGiveUpPoke();

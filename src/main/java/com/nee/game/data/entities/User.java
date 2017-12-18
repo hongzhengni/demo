@@ -38,6 +38,8 @@ public class User implements Comparable<User> {
 
     private int serialHu = 0;
 
+    private int pcCount = 0;
+
     private List<Byte> pokes;
 
     private Map<Byte, Integer> countMap = new HashMap<>();
@@ -48,6 +50,10 @@ public class User implements Comparable<User> {
     private int hog = 0;
 
     private Timer timer = new Timer();
+
+    private int huType;
+
+    private int ratio = 1;
 
 
     /**
@@ -237,7 +243,7 @@ public class User implements Comparable<User> {
         return true;
     }
 
-    boolean canHU(Byte poke) {
+    private boolean canHU(Byte poke) {
 
         countMap.clear();
         List<Byte> n_p = new ArrayList<>(pokes);
@@ -301,6 +307,14 @@ public class User implements Comparable<User> {
                 pairT.remove(key);
 
                 if (huPaiPanDin(pairT)) {
+
+                    huType = CommonConstant.HU_TYPE.COMMON_HU;
+                    Integer pcCount = DataService.tables.get(tableId).getPcCount(this.userId);
+                    if (pcCount > 0) {
+                        huType += pcCount;
+                        ratio *= Math.pow(2, pcCount);
+                    }
+
                     return true;
                 }
             }
@@ -337,7 +351,26 @@ public class User implements Comparable<User> {
                 break;
             }
         }
-        return j >= (n_p.size() - 1);
+
+        if (j >= (n_p.size() - 1)) {
+            huType = CommonConstant.HU_TYPE.SEVEN_PAIRS;
+            Collection<Integer> values = countMap.values();
+            values.stream().filter(value -> value == 4)
+                    .forEach(value -> {
+                        huType = CommonConstant.HU_TYPE.SEVEN_PAIRS_S;
+                        ratio *= 2;
+                    });
+
+
+
+            Integer pcCount = DataService.tables.get(tableId).getPcCount(this.userId);
+            if (pcCount > 0) {
+                huType += pcCount;
+                ratio *= Math.pow(2, pcCount);
+            }
+            return true;
+        }
+        return false;
     }
 
 
@@ -567,6 +600,15 @@ public class User implements Comparable<User> {
 
         System.out.println(" current user id is: " + userId + "play card: " + poke);
         System.out.println("before pokes is: " + pokes.toString());
+
+        if (Objects.equals(poke, PokeData.BLANK)) {
+            currentTable.configPcMap(this.userId);
+        } else {
+            if (currentTable.getPcUserId().equals(this.userId)) {
+                currentTable.clearPcMap();
+            }
+        }
+
         int index = this.pokes.indexOf(poke);
         System.out.println("index: " + index);
         if (index >= 0) {
@@ -699,11 +741,12 @@ public class User implements Comparable<User> {
             if (currentTable.getHuUsers().contains(user)) {
                 user.pokes.add(poke);
                 userMap.put("hu", true);
+                userMap.put("huType", user.huType);
                 user.serialHu++;
                 winCount++;
 
                 double grade = Math.pow(2, user.serialHu);
-                user.grade += grade * 3;
+                user.grade += grade * 3 * ratio;
 
                 calculateGrade(currentTable, user, grade);
 

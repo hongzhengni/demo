@@ -2,7 +2,7 @@ package com.nee.game.common.constant;
 
 public interface CommonConstant {
 
-    int GAP_TIME = 5000 * 20;
+    int GAP_TIME = Integer.MAX_VALUE;
 
     interface USER_STATUS {
         int INIT = 0;
@@ -36,5 +36,11 @@ public interface CommonConstant {
         int PEN = 2;
         int GANG = 3;
         int HU = 4;
+    }
+
+    interface HU_TYPE {
+        int COMMON_HU = 10;
+        int SEVEN_PAIRS = 20;
+        int SEVEN_PAIRS_S = 30;
     }
 }
