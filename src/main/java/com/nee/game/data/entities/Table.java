@@ -224,9 +224,9 @@ public class Table {
         User nextUser = currentActionUser;
         for (int i = 0; i < 3; i++) {
             nextUser = getNextUser(nextUser);
-            /*if (nextUser.canHU(currentPoke)) {
+            if (nextUser.canHU(currentPoke)) {
                 hu_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.HU, currentPoke));
-            }*/
+            }
             if (!isPc()) {
                 if (nextUser.canGang(currentPoke)) {
                     action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.GANG, currentPoke));

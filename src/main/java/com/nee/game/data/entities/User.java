@@ -243,7 +243,7 @@ public class User implements Comparable<User> {
         return true;
     }
 
-    private boolean canHU(Byte poke) {
+    boolean canHU(Byte poke) {
 
         countMap.clear();
         List<Byte> n_p = new ArrayList<>(pokes);
