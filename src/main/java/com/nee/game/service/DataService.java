@@ -43,10 +43,16 @@ public class DataService {
 
     private void initTable() {
         if (tables.size() == 0) {
-            tables.put(1, new Table(1, cardService));
-            tables.put(2, new Table(2, cardService));
-            tables.put(3, new Table(3, cardService));
-            tables.put(4, new Table(4, cardService));
+            Table table = new Table(cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(cardService);
+            tables.put(table.getTableId(), table);
         }
     }
 
@@ -86,15 +92,14 @@ public class DataService {
         int radio = params.getRatio();
         int maxGround = params.getMaxGround();
 
-        int tableId = tables.size() + 1;
-        Table currentTable = new Table(tableId, cardService);
+        Table currentTable = new Table(cardService);
         currentTable.setMaxGameRound(maxGround);
         currentTable.setRadio(radio);
 
-        tables.put(tableId, currentTable);
+        tables.put(currentTable.getTableId(), currentTable);
 
         Map<String, Integer> data = new HashMap<>();
-        data.put("tableId", tableId);
+        data.put("tableId", currentTable.getTableId());
         data.put("userId", currentUser.getUserId());
 
         RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_CREATE_ROOM, data);

@@ -29,11 +29,11 @@ public class GameService {
         System.out.println("Mahjong incoming connection!");
         netSocket.handler(buffer -> {
             try {
-                Request<Params> request = A0Json.decodeValue(buffer.getString(0, buffer.length()),
-                        new TypeReference<Request<Params>>() {
-                        });
+                String reqStr = buffer.getString(0, buffer.length());
+                System.out.println(reqStr);
+                Request<Params> request = A0Json.decodeValue(reqStr,
+                        new TypeReference<Request<Params>>() {});
                 int cmd = request.getCmd();
-                System.out.println(Json.encode(request));
 
                 switch (cmd) {
                     case CmdConstant.LOGIN_HALL:
