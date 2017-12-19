@@ -526,6 +526,7 @@ public class User implements Comparable<User> {
             data.put("pengPokes", this.pen_pokes);
             data.put("chiPokes", this.chi_pokes);
             data.put("playPokes", this.play_pokes);
+            data.put("remainCardNum", cardService.remainCardNum(currentTable.getTableId()));
             data.put("currentActionSeatId", currentTable.getCurrentActionSeatId());
 
 

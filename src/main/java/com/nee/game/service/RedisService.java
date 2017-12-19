@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
+import scala.Int;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -88,6 +89,16 @@ class RedisService{
                 RedisSerializer<String> serializer = redisTemplate.getStringSerializer();
                 byte[] res =  connection.lPop(serializer.serialize(key));
                 return serializer.deserialize(res);
+            }
+        });
+    }
+
+    Long llen(final String key) {
+        return redisTemplate.execute(new RedisCallback<Long>() {
+            @Override
+            public Long doInRedis(RedisConnection connection) throws DataAccessException {
+                RedisSerializer<String> serializer = redisTemplate.getStringSerializer();
+                return connection.lLen(serializer.serialize(key));
             }
         });
     }

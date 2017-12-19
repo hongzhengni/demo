@@ -58,6 +58,10 @@ public class CardService {
         user.setPokes(pokes);
     }
 
+    public Long remainCardNum(int tableId) {
+        return redisService.llen(prex + tableId);
+    }
+
     /*public static void main(String args[]) {
         Byte[] cards = new Byte[136];
         int index = 0;
