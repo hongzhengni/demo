@@ -717,7 +717,7 @@ public class User implements Comparable<User> {
 
         this.setHog(1);
 
-        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_HU_CARD, data);
+        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
     }
 
 
