@@ -167,7 +167,12 @@ public class Table {
         this(cardService);
         this.experience = experience;
 
-        this.addVirtualUser(3);
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                addVirtualUser(3);
+            }
+        }, 2000);
     }
 
     private boolean canDismiss() {

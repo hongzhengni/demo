@@ -2,6 +2,7 @@ package com.nee.game.data.entities;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.nee.game.common.A0Json;
 import com.nee.game.common.PokeData;
 import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
@@ -13,6 +14,7 @@ import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.map.HashedMap;
 
 import java.util.*;
 
@@ -583,7 +585,13 @@ public class User implements Comparable<User> {
         RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
         if (choiceData != null) {
             RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
+        } else {
+            if (cardService.remainCardNum(currentTable.getTableId()) < 20) {
+                huCard(poke);
+                return;
+            }
         }
+
         autoPlay();
     }
 
@@ -739,33 +747,44 @@ public class User implements Comparable<User> {
             if (currentTable.getHuUsers().contains(user)) {
                 user.pokes.add(poke);
                 user.serialHu++;
-                winCount++;
+                user.winCount++;
 
-                double grade = Math.pow(2, user.serialHu) * 3 * ratio;
+                int grade = (int) Math.pow(2, user.serialHu) * 3 * user.ratio;
                 user.grade += grade;
 
                 calculateGrade(currentTable, user, grade);
-            } else {
-                user.serialHu = 0;
             }
         });
 
-        List<Map<String, Object>> data = new ArrayList<>();
-        currentTable.getUsers().forEach(user -> {
+        System.out.println("********************* can hu users ************ \n: " + A0Json.encode(currentTable.getHuUsers()));
+
+        Map<String, Object> data = new HashMap<>();
+        List<Map<String, Object>> userMaps = new ArrayList<>();
+        int huType = 0;
+
+        for (User user : currentTable.getUsers()) {
             Map<String, Object> userMap = new HashMap<>();
             userMap.put("userId", user.getUserId());
             userMap.put("seatId", user.getSeatId());
             userMap.put("hu", false);
             if (currentTable.getHuUsers().contains(user)) {
                 userMap.put("hu", true);
-                userMap.put("huType", user.huType);
+                huType = user.huType;
             } else {
                 user.serialHu = 0;
             }
             userMap.put("pokes", user.pokes);
             userMap.put("grade", user.grade);
-            data.add(userMap);
-        });
+            userMaps.add(userMap);
+        }
+
+
+        if (huType < 10) {
+            huType = 50;
+        }
+
+        data.put("huType", huType);
+        data.put("users", userMaps);
 
         currentTable.huCard();
 
