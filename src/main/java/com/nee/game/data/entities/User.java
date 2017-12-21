@@ -738,8 +738,10 @@ public class User implements Comparable<User> {
                 user.pokes.add(poke);
                 user.serialHu++;
                 winCount++;
-                double grade = Math.pow(2, user.serialHu);
-                user.grade += grade * 3 * ratio;
+
+                double grade = Math.pow(2, user.serialHu) * 3 * ratio;
+                user.grade += grade;
+
                 calculateGrade(currentTable, user, grade);
             } else {
                 user.serialHu = 0;
@@ -767,7 +769,7 @@ public class User implements Comparable<User> {
 
         this.setHog(1);
 
-        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_HU_CARD, data);
+        RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_HU_CARD, data);
     }
 
 
