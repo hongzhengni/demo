@@ -733,6 +733,19 @@ public class User implements Comparable<User> {
     public void huCard(Byte poke) {
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
+        currentTable.getUsers().forEach(user -> {
+            if (currentTable.getHuUsers().contains(user)) {
+                user.pokes.add(poke);
+                user.serialHu++;
+                winCount++;
+                double grade = Math.pow(2, user.serialHu);
+                user.grade += grade * 3 * ratio;
+                calculateGrade(currentTable, user, grade);
+            } else {
+                user.serialHu = 0;
+            }
+        });
+
         List<Map<String, Object>> data = new ArrayList<>();
         currentTable.getUsers().forEach(user -> {
             Map<String, Object> userMap = new HashMap<>();
@@ -740,23 +753,16 @@ public class User implements Comparable<User> {
             userMap.put("seatId", user.getSeatId());
             userMap.put("hu", false);
             if (currentTable.getHuUsers().contains(user)) {
-                user.pokes.add(poke);
                 userMap.put("hu", true);
                 userMap.put("huType", user.huType);
-                user.serialHu++;
-                winCount++;
-
-                double grade = Math.pow(2, user.serialHu);
-                user.grade += grade * 3 * ratio;
-
-                calculateGrade(currentTable, user, grade);
-
             } else {
                 user.serialHu = 0;
             }
             userMap.put("pokes", user.pokes);
+            userMap.put("grade", user.grade);
             data.add(userMap);
         });
+
         currentTable.huCard();
 
         this.setHog(1);
