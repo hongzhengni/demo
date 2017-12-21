@@ -56,6 +56,8 @@ public class User implements Comparable<User> {
     private int ratio = 1;
 
 
+    private int gapTime = Integer.MAX_VALUE;
+
     /**
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
      **/
@@ -362,7 +364,6 @@ public class User implements Comparable<User> {
                     });
 
 
-
             Integer pcCount = DataService.tables.get(tableId).getPcCount(this.userId);
             if (pcCount > 0) {
                 huType += pcCount;
@@ -451,20 +452,21 @@ public class User implements Comparable<User> {
         data.put("user", userInfo);
 
         List<Map<String, Object>> tableMaps = new ArrayList<>();
-        DataService.tables.values().forEach(table -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("tableId", table.getTableId());
-            List<Map<String, Object>> userMaps = new ArrayList<>();
-            table.getUsers().stream().filter(Objects::nonNull)
-                    .forEach(user -> {
-                        Map<String, Object> userMap = new HashMap<>();
-                        userMap.put("userId", user.getUserId());
-                        userMap.put("nick", user.getNick());
-                        userMaps.add(userMap);
-                    });
-            map.put("users", userMaps);
-            tableMaps.add(map);
-        });
+        DataService.tables.values().stream().filter(Table::isExperience)
+                .forEach(table -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("tableId", table.getTableId());
+                    List<Map<String, Object>> userMaps = new ArrayList<>();
+                    table.getUsers().stream().filter(Objects::nonNull)
+                            .forEach(user -> {
+                                Map<String, Object> userMap = new HashMap<>();
+                                userMap.put("userId", user.getUserId());
+                                userMap.put("nick", user.getNick());
+                                userMaps.add(userMap);
+                            });
+                    map.put("users", userMaps);
+                    tableMaps.add(map);
+                });
 
         data.put("tables", tableMaps);
 
@@ -498,7 +500,7 @@ public class User implements Comparable<User> {
             currentTable.addUser(this);
 
             data.put("tableId", currentTable.getTableId());
-            data.put("tableNo", "测试房间" + currentTable.getTableId());
+            data.put("tableNo", "房间" + currentTable.getTableId());
             data.put("maxGameRound", currentTable.getMaxGameRound());
             data.put("currentGameRound", currentTable.getGameRound());
 
@@ -518,7 +520,7 @@ public class User implements Comparable<User> {
             data.put("users", userList);
         } else {
             data.put("tableId", currentTable.getTableId());
-            data.put("tableNo", "测试房间" + currentTable.getTableId());
+            data.put("tableNo", "房间" + currentTable.getTableId());
             data.put("maxGameRound", currentTable.getMaxGameRound());
             data.put("currentGameRound", currentTable.getGameRound());
             data.put("pokes", this.pokes);
@@ -879,7 +881,7 @@ public class User implements Comparable<User> {
                     playCard(null);
                 }
             }
-        }, CommonConstant.GAP_TIME);
+        }, gapTime);
 
     }
 
@@ -890,7 +892,7 @@ public class User implements Comparable<User> {
             public void run() {
                 giveUpPoke();
             }
-        }, CommonConstant.GAP_TIME);
+        }, gapTime);
     }
 
 

@@ -43,15 +43,25 @@ public class DataService {
 
     private void initTable() {
         if (tables.size() == 0) {
-            Table table = new Table(cardService);
+            Table table = new Table(true, cardService);
             tables.put(table.getTableId(), table);
-            table = new Table(cardService);
+            table = new Table(true, cardService);
             tables.put(table.getTableId(), table);
-            table = new Table(cardService);
+            table = new Table(true, cardService);
             tables.put(table.getTableId(), table);
-            table = new Table(cardService);
+            table = new Table(true, cardService);
             tables.put(table.getTableId(), table);
-            table = new Table(cardService);
+            table = new Table(true, cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService);
             tables.put(table.getTableId(), table);
         }
     }
@@ -76,8 +86,6 @@ public class DataService {
         u.setNetSocket(netSocket);
 
         socketUserMap.put(netSocket, u);
-
-        System.out.println("user is -----------------------------------> " + Json.encode(u) + ", userId: " + u.getUserId() + ", tableId: " + u.getTableId());
 
         u.loginHall();
 
@@ -104,7 +112,6 @@ public class DataService {
 
         RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_CREATE_ROOM, data);
 
-        currentTable.addVirtualUser(3);
     }
 
     void sitDown(NetSocket netSocket, Params params) {

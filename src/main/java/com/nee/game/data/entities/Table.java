@@ -17,6 +17,7 @@ public class Table {
     private int radio = 8;
     private int invalidCount = 0;
     private int tableId;
+    private boolean experience = false;
     private List<User> users;
 
     private List<Map<String, Object>> hu_tasks = new ArrayList<>();
@@ -125,17 +126,16 @@ public class Table {
         pcMap.clear();
     }
 
-    public void addVirtualUser(int num) {
-        System.out.println(num);
-        /*for (int i = 0; i < num; i++) {
+    private void addVirtualUser(int num) {
+        for (int i = 0; i < num; i++) {
             User u = new User(cardService);
             u.setUserId(DataService.users.size() + 1);
             u.setNick("测试用户" + u.getUserId());
             u.setMoney(1000);
             DataService.users.put(u.getUserId(), u);
 
-            u.sitDown(tableId);
-        }*/
+            u.sitDown(tableId, null);
+        }
     }
 
     private int readyCount() {
@@ -163,6 +163,13 @@ public class Table {
         timer.schedule(new AutoExecuteTask(), 1000, 1000);
     }
 
+    public Table(boolean experience, CardService cardService) {
+        this(cardService);
+        this.experience = experience;
+
+        this.addVirtualUser(3);
+    }
+
     private boolean canDismiss() {
         int count = 0;
         int dismissCount = 0;
@@ -186,6 +193,10 @@ public class Table {
             }
         }
         return count;
+    }
+
+    boolean isExperience() {
+        return experience;
     }
 
     int getGameRound() {
