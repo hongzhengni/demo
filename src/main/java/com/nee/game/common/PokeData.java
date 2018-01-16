@@ -22,4 +22,10 @@ public class PokeData {
     };
 
     public static final Byte BLANK = 0x37;
+
+    public static final Byte EAST = 0x31;
+    public static final Byte SOUTH = 0x32;
+    public static final Byte NORTH = 0x33;
+    public static final Byte WEST = 0x34;
+    public static final Byte CENTER = 0x35;
 }

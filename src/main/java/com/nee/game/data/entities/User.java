@@ -13,9 +13,10 @@ import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
 import io.vertx.core.net.NetSocket;
+import io.vertx.ext.asyncsql.AsyncSQLClient;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.map.HashedMap;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 
 public class User implements Comparable<User> {
@@ -23,7 +24,7 @@ public class User implements Comparable<User> {
     private CardService cardService;
     private Integer userId;
     private String nick;
-    private int money = 0;
+    int money = 0;
 
     private int grade = 0;
 
@@ -57,8 +58,13 @@ public class User implements Comparable<User> {
 
     private int ratio = 1;
 
+    private Map<Integer, Integer> chiCountMap = new HashMap<>();
+
+
+    private boolean hasAction = false;
 
     private int gapTime = Integer.MAX_VALUE;
+
 
     /**
      * －－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
@@ -86,7 +92,16 @@ public class User implements Comparable<User> {
         this.cardService = cardService;
     }
 
-  /*  public User(int userId, String nick, int originalMoney, CardService cardService) {
+    User(CardService cardService, int gapTime) {
+        this(cardService);
+        this.gapTime = gapTime;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    /*  public User(int userId, String nick, int originalMoney, CardService cardService) {
         this.userId = userId;
         this.nick = nick;
         this.setOriginalMoney(originalMoney);
@@ -96,6 +111,9 @@ public class User implements Comparable<User> {
     private void clear() {
         this.setMoney(0);
         this.setStatus(0);
+        this.winCount = 0;
+        this.serialHu = 0;
+        this.grade = 0;
         this.tableId = null;
         this.seatId = null;
         this.dismiss = false;
@@ -107,7 +125,20 @@ public class User implements Comparable<User> {
         clearPokes();
     }
 
-    private void clearPokes() {
+    private void clearGame() {
+        this.setMoney(0);
+        this.setStatus(0);
+        this.dismiss = false;
+        try {
+            timer.cancel();
+        } catch (Exception e) {
+            System.out.println("It does not matter");
+        }
+        clearPokes();
+        chiCountMap.clear();
+    }
+
+    void clearPokes() {
         if (play_pokes != null) {
             play_pokes.clear();
         }
@@ -239,8 +270,8 @@ public class User implements Comparable<User> {
         if (gang_pokes == null || gang_pokes.size() == 0) {
             return (p_c < 14);
         } else {
-            int g_num = gang_pokes.size() % 4;
-            if (p_c > 13 + g_num) {
+            int g_num = gang_pokes.size() / 4;
+            if (p_c > (13 + g_num)) {
                 return false;
             }
         }
@@ -277,7 +308,9 @@ public class User implements Comparable<User> {
             pokes.remove(f_poke);
             return huPaiPanDin(pokes);
         } else { //组成顺子
-            if (pokes.contains((byte) (f_poke + 1)) && pokes.contains((byte) (f_poke + 2))) {
+            if (!(f_poke.equals(PokeData.EAST) || f_poke.equals(PokeData.SOUTH) || f_poke.equals(PokeData.WEST)
+                    || f_poke.equals(PokeData.NORTH) || f_poke.equals(PokeData.CENTER))
+                    && pokes.contains((byte) (f_poke + 1)) && pokes.contains((byte) (f_poke + 2))) {
                 pokes.remove(pokes.indexOf(f_poke));
                 pokes.remove(pokes.indexOf((byte) (f_poke + 1)));
                 pokes.remove(pokes.indexOf((byte) (f_poke + 2)));
@@ -346,6 +379,11 @@ public class User implements Comparable<User> {
     }
 
     private boolean sevenPairHu(List<Byte> pokes) {
+
+        if (!CollectionUtils.isEmpty(pen_pokes) || !CollectionUtils.isEmpty(chi_pokes)) {
+            return false;
+        }
+
         List<Byte> n_p = new ArrayList<>(pokes);
         Collections.sort(n_p);
 
@@ -377,8 +415,13 @@ public class User implements Comparable<User> {
     }
 
 
-    boolean canGang(Byte poke) {
-        return countMap.get(poke) == 4;
+    boolean canGang(Byte poke, Boolean isSelf) {
+        if (isSelf) {
+            return countMap.get(poke) == 4 || (pen_pokes != null && pen_pokes.contains(poke));
+        } else {
+            return countMap.get(poke) == 4;
+        }
+
     }
 
     boolean canPen(Byte poke) {
@@ -404,6 +447,12 @@ public class User implements Comparable<User> {
     Map<String, Object> canChi(Byte poke) {
 
         if (poke < 0x38 && poke > 0x30) {
+            return null;
+        }
+
+        Table currentTable = DataService.tables.get(tableId);
+        if (currentTable.getRadio() == 8 && chiCountMap.get(currentTable.currentPlayUser.userId) != null
+                && chiCountMap.get(currentTable.currentPlayUser.userId) > 1) {
             return null;
         }
 
@@ -454,21 +503,22 @@ public class User implements Comparable<User> {
         data.put("user", userInfo);
 
         List<Map<String, Object>> tableMaps = new ArrayList<>();
-        DataService.tables.values().stream().filter(Table::isExperience)
-                .forEach(table -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("tableId", table.getTableId());
-                    List<Map<String, Object>> userMaps = new ArrayList<>();
-                    table.getUsers().stream().filter(Objects::nonNull)
-                            .forEach(user -> {
-                                Map<String, Object> userMap = new HashMap<>();
-                                userMap.put("userId", user.getUserId());
-                                userMap.put("nick", user.getNick());
-                                userMaps.add(userMap);
-                            });
-                    map.put("users", userMaps);
-                    tableMaps.add(map);
-                });
+        DataService.tables.values().forEach(table -> {
+            if (table.isExperience()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("tableId", table.getTableId());
+                List<Map<String, Object>> userMaps = new ArrayList<>();
+                table.getUsers().stream().filter(Objects::nonNull)
+                        .forEach(user -> {
+                            Map<String, Object> userMap = new HashMap<>();
+                            userMap.put("userId", user.getUserId());
+                            userMap.put("nick", user.getNick());
+                            userMaps.add(userMap);
+                        });
+                map.put("users", userMaps);
+                tableMaps.add(map);
+            }
+        });
 
         data.put("tables", tableMaps);
 
@@ -531,7 +581,7 @@ public class User implements Comparable<User> {
             data.put("chiPokes", this.chi_pokes);
             data.put("playPokes", this.play_pokes);
             data.put("remainCardNum", cardService.remainCardNum(currentTable.getTableId()));
-            data.put("currentActionSeatId", currentTable.getCurrentActionSeatId());
+            data.put("currentActionSeatId", currentTable.cid);
 
 
             List<Map<String, Object>> userList = new ArrayList<>();
@@ -550,6 +600,10 @@ public class User implements Comparable<User> {
                         userMap.put("chiPokes", user.chi_pokes);
                         userMap.put("playPokes", user.play_pokes);
                         userList.add(userMap);
+
+                        if (user.getHog() == 1) {
+                            data.put("hog", this.seatId);
+                        }
                     });
             data.put("users", userList);
 
@@ -565,33 +619,37 @@ public class User implements Comparable<User> {
     }
 
     void catchCard() {
+        hasAction = false;
 
-        Table currentTable = DataService.tables.get(tableId);
-        Byte poke = cardService.dealCard(tableId);
+        if (shouldCatch()) {
+            Table currentTable = DataService.tables.get(tableId);
+            currentTable.cid = this.seatId;
+            Byte poke = cardService.dealCard(tableId);
 
-        Map<String, Object> broadcast_data = new HashMap<>();
-        broadcast_data.put("userId", userId);
-        broadcast_data.put("seatId", seatId);
-        RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_CATCH_CARD, broadcast_data);
+            Map<String, Object> broadcast_data = new HashMap<>();
+            broadcast_data.put("userId", userId);
+            broadcast_data.put("seatId", seatId);
+            RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_CATCH_CARD, broadcast_data);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", userId);
-        data.put("seatId", seatId);
-        Map<String, Object> choiceData = choiceData(poke);
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", userId);
+            data.put("seatId", seatId);
+            Map<String, Object> choiceData = choiceData(poke, true);
 
-        this.pokes.add(poke);
-        data.put("poke", poke);
+            this.pokes.add(poke);
+            data.put("poke", poke);
 
-        RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
-        if (choiceData != null) {
-            RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
-        } else {
-            if (cardService.remainCardNum(currentTable.getTableId()) < 20) {
-                huCard(poke);
-                return;
+            RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CATCH_CARD, data);
+            if (choiceData != null) {
+                hasAction = true;
+                RevMsgUtils.revMsg(this, CmdConstant.REV_ACTION_CARD, choiceData);
+            } else {
+                if (cardService.remainCardNum(currentTable.getTableId()) < 20) {
+                    huCard(poke);
+                    return;
+                }
             }
         }
-
         autoPlay();
     }
 
@@ -599,8 +657,11 @@ public class User implements Comparable<User> {
         if (poke == null) {
             poke = pokes.get(pokes.size() - 1);
         }
+        hasAction = false;
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
+
+        currentTable.currentPlayUser = this;
 
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
@@ -629,6 +690,7 @@ public class User implements Comparable<User> {
         System.out.println("after pokes: " + pokes.toString());
 
         currentTable.setCurrentEle(this, poke);
+        currentTable.cid = this.seatId;
 
         currentTable.calculateAction();
 
@@ -636,7 +698,7 @@ public class User implements Comparable<User> {
 
     }
 
-    private Map<String, Object> choiceData(Byte poke) {
+    private Map<String, Object> choiceData(Byte poke, Boolean isSelf) {
 
         List<Map<String, Object>> choices = new ArrayList<>();
 
@@ -648,7 +710,7 @@ public class User implements Comparable<User> {
             choiceMap.put("pokes", pokes);
             choices.add(choiceMap);
         }
-        if (canGang(poke)) {
+        if (canGang(poke, isSelf)) {
             Map<String, Object> choiceMap = new HashMap<>();
             choiceMap.put("type", CommonConstant.ACTION_TYPE.GANG);
             Byte[] pokes = new Byte[1];
@@ -686,6 +748,10 @@ public class User implements Comparable<User> {
         actionMap.put("type", CommonConstant.ACTION_TYPE.CHI);
         actionMap.put("pokes", pokes);
         data.put("action", actionMap);
+
+        chiCountMap.putIfAbsent(currentTable.currentPlayUser.getUserId(), 0);
+        chiCountMap.put(currentTable.currentPlayUser.getUserId(),
+                chiCountMap.get(currentTable.currentPlayUser.getUserId() + 1));
 
         RevMsgUtils.revMsg(currentTable.getUsers(), this, CmdConstant.BROADCAST_ACTION_CARD, data);
 
@@ -725,7 +791,11 @@ public class User implements Comparable<User> {
         } else {
             gang_pokes.addAll(pokes);
         }
-        this.pokes.removeAll(pokes);
+        if (this.pokes.contains(pokes.get(0))) {
+            this.pokes.removeAll(pokes);
+        } else {
+            this.pen_pokes.removeAll(pokes);
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
@@ -744,13 +814,16 @@ public class User implements Comparable<User> {
         timer.cancel();
         Table currentTable = DataService.tables.get(tableId);
         currentTable.getUsers().forEach(user -> {
-            if (currentTable.getHuUsers().contains(user)) {
+            if (this == user) {
                 user.pokes.add(poke);
                 user.serialHu++;
                 user.winCount++;
 
-                int grade = (int) Math.pow(2, user.serialHu) * 3 * user.ratio;
-                user.grade += grade;
+                int grade = (int) Math.pow(2, 0) * user.ratio * currentTable.getRadio();
+                if (user.getHog() == 1) {
+                    grade *= 2;
+                }
+                user.grade += grade * 3;
 
                 calculateGrade(currentTable, user, grade);
             }
@@ -767,20 +840,32 @@ public class User implements Comparable<User> {
             userMap.put("userId", user.getUserId());
             userMap.put("seatId", user.getSeatId());
             userMap.put("hu", false);
-            if (currentTable.getHuUsers().contains(user)) {
+            if (this == user) {
                 userMap.put("hu", true);
                 huType = user.huType;
             } else {
                 user.serialHu = 0;
             }
-            userMap.put("pokes", user.pokes);
+            List<Byte> userPokes = new ArrayList<>(user.pokes);
+            /*if (user.chi_pokes != null) {
+                userPokes.addAll(user.chi_pokes);
+            }
+            if (user.pen_pokes != null) {
+                userPokes.addAll(user.pen_pokes);
+            }
+            if (user.gang_pokes != null) {
+                userPokes.addAll(user.gang_pokes);
+            }*/
+
+            userMap.put("pokes", userPokes);
             userMap.put("grade", user.grade);
             userMaps.add(userMap);
         }
 
 
+        System.out.println("当前huType：" + huType);
         if (huType < 10) {
-            huType = 50;
+            //huType = 50;
         }
 
         data.put("huType", huType);
@@ -796,6 +881,7 @@ public class User implements Comparable<User> {
 
     public void giveUpPoke() {
         timer.cancel();
+        hasAction = false;
         Table currentTable = DataService.tables.get(tableId);
         currentTable.nextStep();
     }
@@ -857,6 +943,9 @@ public class User implements Comparable<User> {
     public void chat(String content) {
 
         Table currentTable = DataService.tables.get(tableId);
+        if (currentTable == null) {
+            throw new BusinessException(ErrorCodeEnum.DATA_NOT_EXIST);
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
@@ -872,13 +961,38 @@ public class User implements Comparable<User> {
         if (CollectionUtils.isEmpty(this.pokes)) {
             standUp();
         } else {
+            if (hasAction) {
+                giveUpPoke();
+            }
             Table currentTable = DataService.tables.get(tableId);
-
-            Map<String, Integer> data = new HashMap<>();
-            data.put("userId", this.userId);
-            data.put("seatId", this.seatId);
-            RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
+            if (currentTable.isExperience()) {
+                currentTable.clearRound();
+                currentTable.getUsers().stream().filter(user -> user != this)
+                        .forEach(User::clearGame);
+                this.standUp();
+            } else {
+                Map<String, Integer> data = new HashMap<>();
+                data.put("userId", this.userId);
+                data.put("seatId", this.seatId);
+                RevMsgUtils.revMsg(currentTable.getUsers(), CmdConstant.BROADCAST_DISCONNECT, data);
+            }
         }
+    }
+
+    public void createRoom(int radio, int maxGround, AsyncSQLClient mysqlClient) {
+
+        Table currentTable = new Table(cardService, mysqlClient);
+        currentTable.setMaxGameRound(maxGround);
+        currentTable.setRadio(radio);
+        currentTable.adminUserId = userId;
+        DataService.tables.put(currentTable.getTableId(), currentTable);
+
+        Map<String, Integer> data = new HashMap<>();
+        data.put("tableId", currentTable.getTableId());
+        data.put("userId", userId);
+
+
+        RevMsgUtils.revMsg(this, CmdConstant.BROADCAST_CREATE_ROOM, data);
     }
 
     private void calculateGrade(Table table, User user, double grade) {
@@ -905,6 +1019,7 @@ public class User implements Comparable<User> {
     }
 
     void autoGiveUpPoke() {
+        hasAction = true;
         timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -922,6 +1037,10 @@ public class User implements Comparable<User> {
         User user = new User(pokes);
 
         System.out.println(user.canHU((byte) 24));
+
+        pokes.removeAll(Arrays.asList((byte) 39, (byte) 39));
+
+        System.out.println(pokes.toString());
 
     }
 

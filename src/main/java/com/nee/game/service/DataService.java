@@ -1,19 +1,23 @@
 package com.nee.game.service;
 
-import com.nee.game.common.constant.CmdConstant;
 import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.common.constant.ErrorCodeEnum;
 import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.data.entities.Table;
 import com.nee.game.data.entities.User;
-import com.nee.game.uitls.RevMsgUtils;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
+import io.vertx.ext.asyncsql.AsyncSQLClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class DataService {
@@ -21,6 +25,8 @@ public class DataService {
     private RedisService redisService;
     @Autowired
     private CardService cardService;
+    @Autowired
+    private AsyncSQLClient mysqlClient;
 
     public static Map<Integer, Table> tables = new HashMap<>();
     public static Map<Integer, User> users = new HashMap<>();
@@ -41,29 +47,40 @@ public class DataService {
         return table;
     }*/
 
-    private void initTable() {
-        if (tables.size() == 0) {
-            Table table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
-            table = new Table(true, cardService);
-            tables.put(table.getTableId(), table);
+    /*@PostConstruct
+    private void test() {
+        cardService.initCard(123456);
+
+        System.out.println(cardService.remainCardNum(123456));
+
+
+        for (int i = 0; i < 4; i++) {
+
+            User user = new User(cardService);
+            user.tableId = 123456;
+
+            cardService.dealCards(user, 13);
         }
+
+        System.out.println(cardService.remainCardNum(123456));
+
+    }*/
+
+    private void initTable() {
+        /*if (tables.size() == 0) {
+            Table table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+            table = new Table(true, cardService, mysqlClient);
+            tables.put(table.getTableId(), table);
+        }*/
     }
 
 
@@ -73,22 +90,57 @@ public class DataService {
         initTable();
 
         int userId = params.getUserId();
-        User u;
+        CompletableFuture future = new CompletableFuture();
         if (users.get(userId) == null) {
-            u = new User(cardService);
-            u.setUserId(params.getUserId());
-            u.setNick("测试用户" + userId);
-            u.setMoney(1000);
-            users.put(u.getUserId(), u);
+            mysqlClient.getConnection(connectionAsyncResult -> {
+                if (connectionAsyncResult.failed()) {
+                    future.completeExceptionally(connectionAsyncResult.cause());
+                }
+                System.out.println("mahjong login connect success!");
+                connectionAsyncResult.result().query("select * from nee_users where id = " + userId, resultSetAsyncResult -> {
+                    if (resultSetAsyncResult.failed()) {
+                        future.completeExceptionally(resultSetAsyncResult.cause());
+                    }
+
+                    System.out.println("mahjong login query success!");
+                    List<JsonObject> result = (List<JsonObject>) resultSetAsyncResult.result().getRows();
+
+                    User u = new User(cardService);
+                    if (result.size() > 0) {
+                        JsonObject object = result.get(0);
+                        u.setUserId(object.getInteger("id"));
+                        u.setNick(object.getString("nickname"));
+                        u.setAvatarUrl(object.getString("headimgurl"));
+                    } else {
+                        u.setUserId(params.getUserId());
+                        u.setNick("测试用户" + userId);
+                        u.setMoney(0);
+                    }
+
+                    System.out.println("mahjong login user: " + Json.encode(u));
+                    users.put(u.getUserId(), u);
+                    connectionAsyncResult.result().close();
+                    future.complete(1);
+                });
+            });
+
+        } else {
+            future.complete(1);
         }
 
-        u = users.get(userId);
-        u.setNetSocket(netSocket);
+        future.whenComplete((res, ex) -> {
+            System.out.println("can exe here");
+            if (ex != null) {
+                System.out.println(ex.toString());
+                throw new BusinessException(ErrorCodeEnum.ERROR_LOGIC);
+            }
+            User u = users.get(userId);
+            u.setNetSocket(netSocket);
 
-        socketUserMap.put(netSocket, u);
+            socketUserMap.put(netSocket, u);
 
-        u.loginHall();
-
+            u.loginHall();
+        });
     }
 
     void createRoom(NetSocket netSocket, Params params) {
@@ -100,17 +152,7 @@ public class DataService {
         int radio = params.getRatio();
         int maxGround = params.getMaxGround();
 
-        Table currentTable = new Table(cardService);
-        currentTable.setMaxGameRound(maxGround);
-        currentTable.setRadio(radio);
-
-        tables.put(currentTable.getTableId(), currentTable);
-
-        Map<String, Integer> data = new HashMap<>();
-        data.put("tableId", currentTable.getTableId());
-        data.put("userId", currentUser.getUserId());
-
-        RevMsgUtils.revMsg(users.values(), CmdConstant.BROADCAST_CREATE_ROOM, data);
+        currentUser.createRoom(radio, maxGround, mysqlClient);
 
     }
 

@@ -5,6 +5,9 @@ import com.nee.game.common.constant.CommonConstant;
 import com.nee.game.service.CardService;
 import com.nee.game.service.DataService;
 import com.nee.game.uitls.RevMsgUtils;
+import io.vertx.core.json.JsonArray;
+import io.vertx.ext.asyncsql.AsyncSQLClient;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.Inet4Address;
 import java.util.*;
@@ -19,13 +22,18 @@ public class Table {
     private int tableId;
     private boolean experience = false;
     private List<User> users;
+    Integer adminUserId;
+
+    private AsyncSQLClient mysqlClient;
 
     private List<Map<String, Object>> hu_tasks = new ArrayList<>();
     private List<Map<String, Object>> action_tasks = new ArrayList<>();
     private List<User> huUsers = new ArrayList<>();
 
     private User currentChiUser;
+    User currentPlayUser;
     private User currentActionUser;
+    Integer cid;
     private Byte currentPoke;
     private Timer timer = new Timer();
 
@@ -128,10 +136,10 @@ public class Table {
 
     private void addVirtualUser(int num) {
         for (int i = 0; i < num; i++) {
-            User u = new User(cardService);
+            User u = new User(cardService, 2000);
             u.setUserId(DataService.users.size() + 1);
             u.setNick("测试用户" + u.getUserId());
-            u.setMoney(1000);
+            u.setMoney(0);
             DataService.users.put(u.getUserId(), u);
 
             u.sitDown(tableId, null);
@@ -151,7 +159,7 @@ public class Table {
         return getRealCount() == maxCount;
     }
 
-    public Table(CardService cardService) {
+    Table(CardService cardService, AsyncSQLClient mysqlClient) {
 
         this.cardService = cardService;
         this.tableId = (int) ((Math.random() * 9 + 1) * 100000);
@@ -159,12 +167,12 @@ public class Table {
         for (int i = 0; i < maxCount; i++) {
             users.add(i, null);
         }
-
+        this.mysqlClient = mysqlClient;
         timer.schedule(new AutoExecuteTask(), 1000, 1000);
     }
 
-    public Table(boolean experience, CardService cardService) {
-        this(cardService);
+    public Table(boolean experience, CardService cardService, AsyncSQLClient mysqlClient) {
+        this(cardService, mysqlClient);
         this.experience = experience;
 
         timer.schedule(new TimerTask() {
@@ -172,7 +180,7 @@ public class Table {
             public void run() {
                 addVirtualUser(3);
             }
-        }, 2000);
+        }, 300);
     }
 
     private boolean canDismiss() {
@@ -216,7 +224,7 @@ public class Table {
         this.gameRound++;
     }
 
-    public void setMaxGameRound(int maxGameRound) {
+    void setMaxGameRound(int maxGameRound) {
         this.maxGameRound = maxGameRound;
     }
 
@@ -224,7 +232,7 @@ public class Table {
         return maxGameRound;
     }
 
-    public void setRadio(int radio) {
+    void setRadio(int radio) {
         this.radio = radio;
     }
 
@@ -241,10 +249,10 @@ public class Table {
         for (int i = 0; i < 3; i++) {
             nextUser = getNextUser(nextUser);
             if (nextUser.canHU(currentPoke)) {
-                hu_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.HU, currentPoke));
+                //hu_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.HU, currentPoke));
             }
             if (!isPc()) {
-                if (nextUser.canGang(currentPoke)) {
+                if (nextUser.canGang(currentPoke, false)) {
                     action_tasks.add(nextUser.actionMap(CommonConstant.ACTION_TYPE.GANG, currentPoke));
                 }
                 if (nextUser.canPen(currentPoke)) {
@@ -318,6 +326,21 @@ public class Table {
         data.put("users", userMaps);
         RevMsgUtils.revMsg(users, CmdConstant.BROADCAST_START_GAME, data);
 
+        User admin = DataService.users.get(adminUserId);
+        if (admin != null) {
+            admin.money -= 10;
+            JsonArray params = new JsonArray().add(admin.getUserId());
+            mysqlClient.getConnection(connectionAsyncResult -> {
+                if (connectionAsyncResult.succeeded()) {
+                    connectionAsyncResult.result().queryWithParams("UPDATE nee_users SET diamonds = diamonds - 1 WHERE id = ?;",
+                            params, resultSetAsyncResult -> {
+                            connectionAsyncResult.result().close();
+                    });
+                }
+            });
+
+        }
+
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -379,6 +402,7 @@ public class Table {
             if (huUsers.contains(u)) {
 
             }
+            u.clearPokes();
         });
         //huUsers.get(0).setHog(1);
 
@@ -395,7 +419,13 @@ public class Table {
 
         @Override
         public void run() {
-            if (!isFull() || isEnd()) {
+            if (isEnd()) {
+                users.stream().filter(user -> user != null)
+                        .forEach(User::standUp);
+
+                return;
+            }
+            if (!isFull()) {
                 return;
             }
             if (tache == CommonConstant.TABLE_TACHE.READY) {
@@ -428,7 +458,7 @@ public class Table {
 
             } else if (tache == CommonConstant.TABLE_TACHE.PLAYING) {
 
-                if (canDismiss()) {
+                if (canDismiss() && !isExperience()) {
                     users.stream().filter(user -> user != null)
                             .forEach(User::standUp);
                 }

@@ -32,7 +32,7 @@ public class VertxServer {
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        router.get("/user/v1/:id")
+        router.post("/user")
                 .produces("application/json")
                 .blockingHandler(gameService::execute);
 

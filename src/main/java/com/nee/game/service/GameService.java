@@ -9,12 +9,18 @@ import com.nee.game.common.constant.ErrorCodeEnum;
 import com.nee.game.common.exception.BusinessException;
 import com.nee.game.data.entities.Params;
 import com.nee.game.uitls.StringUtils;
-import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetSocket;
+import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.web.RoutingContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  */
@@ -23,6 +29,8 @@ public class GameService {
 
     @Autowired
     private DataService dataService;
+    @Autowired
+    private AsyncSQLClient mysqlClient;
 
     public void handle(NetSocket netSocket) {
 
@@ -32,7 +40,8 @@ public class GameService {
                 String reqStr = buffer.getString(0, buffer.length());
                 System.out.println(reqStr);
                 Request<Params> request = A0Json.decodeValue(reqStr,
-                        new TypeReference<Request<Params>>() {});
+                        new TypeReference<Request<Params>>() {
+                        });
                 int cmd = request.getCmd();
 
                 switch (cmd) {
@@ -99,30 +108,131 @@ public class GameService {
 
     public void execute(RoutingContext routingContext) {
 
-        JsonObject object = routingContext.getBodyAsJson();
+
+        String method = routingContext.request().getParam("method");
+        System.out.println("http ----> method: " + method);
 
 
-        String method = object.getString("method");
-        String version = object.getString("version");
+
         if (StringUtils.isBlank(method)) {
             throw new BusinessException(ErrorCodeEnum.REQUEST_ERROR);
         }
-        if (StringUtils.isBlank(version)) {
-            throw new BusinessException(ErrorCodeEnum.VERSION_ERROR);
-        }
 
-       /* if (StringUtils.equals(method, "register")) {
-
-        } else if (StringUtils.equals(method, "login")) {
-
-        } else if (StringUtils.equals(method, "logout")) {
-
-        } else if (StringUtils.equals(method, "forget.password")) {
-
-        } else if (StringUtils.equals(method, "change.password")) {
-
+        if (StringUtils.equals(method, "get.info")) {
+            getInfo(routingContext);
+        } else if (StringUtils.equals(method, "sign.desk")) {
+            signDesk(routingContext);
         } else {
             throw new BusinessException(ErrorCodeEnum.REQUEST_ERROR);
-        }*/
+        }
+    }
+
+    private void signDesk(RoutingContext routingContext) {
+        Integer userId = Integer.valueOf(routingContext.request().getParam("userId"));
+
+        if (userId == null) {
+            throw new BusinessException(ErrorCodeEnum.ERROR_PARAM);
+        }
+        CompletableFuture<List<JsonObject>> allFuture = new CompletableFuture<>();
+        JsonArray queryParams = new JsonArray().add(userId);
+        mysqlClient.getConnection(connection -> {
+            if (connection.failed()) {
+                allFuture.completeExceptionally(connection.cause());
+            }
+            if (connection.succeeded()) {
+                connection.result().queryWithParams("SELECT id, diamonds, sign_count from nee_users where id = ?", queryParams, result -> {
+                    if (result.failed()) allFuture.completeExceptionally(result.cause());
+                    else {
+                        allFuture.complete(result.result().getRows());
+                    }
+                    connection.result().close();
+                });
+            }
+        });
+        allFuture.thenCompose(res -> {
+            CompletableFuture future = new CompletableFuture();
+            if (res.size() > 0) {
+                Integer signCount = res.get(0).getInteger("sign_count");
+                if (signCount == null) signCount = 0;
+                int diamonds = res.get(0).getInteger("diamonds");
+                signCount += 1;
+                final int addDiamonds = signCount % 30;
+                diamonds += addDiamonds;
+
+                JsonArray updateParams = new JsonArray().add(diamonds).add(signCount).add(userId);
+                mysqlClient.getConnection(connection -> {
+                    if (connection.failed()) {
+                        future.completeExceptionally(connection.cause());
+                    }
+                    if (connection.succeeded()) {
+                        connection.result().queryWithParams("update nee_users set diamonds = ?, sign_count = ?, " +
+                                "last_sign_date = now() where id = ?", updateParams, result -> {
+                            if (result.failed()) {
+                                future.completeExceptionally(result.cause());
+                            } else {
+                                future.complete(addDiamonds);
+                            }
+                            connection.result().close();
+                        });
+                    }
+                });
+            } else {
+                future.complete(0);
+            }
+
+            return future;
+        }).whenComplete((res, ex) -> {
+            if (ex != null) {
+                System.out.println(ex.toString());
+                routingContext.response().putHeader("content-type", "application/json; charset=utf-8")
+                        .end(A0Json.encode(new Result.Builder().setCode(ErrorCodeEnum.SYSTEM_ERROR.getCode() + "")
+                                .setMessage(ErrorCodeEnum.SYSTEM_ERROR.getMessage()).build()));
+            } else {
+                Map<String, Object> data = new HashMap<>();
+                data.put("addDiamonds", res);
+                routingContext.response().putHeader("content-type", "application/json; charset=utf-8")
+                        .end(A0Json.encode(new Result.Builder().setData(data).build()));
+            }
+        });
+    }
+
+
+    private void getInfo(RoutingContext routingContext) {
+        Integer userId = Integer.valueOf(routingContext.request().getParam("userId"));
+
+        System.out.println("userId: " + userId);
+
+        if (userId == null) {
+            throw new BusinessException(ErrorCodeEnum.ERROR_PARAM);
+        }
+        CompletableFuture allFuture = new CompletableFuture();
+        JsonArray queryParams = new JsonArray().add(userId);
+        mysqlClient.getConnection(connection -> {
+            if (connection.failed()) {
+                allFuture.completeExceptionally(connection.cause());
+            }
+            if (connection.succeeded()) {
+                connection.result().queryWithParams("SELECT id, nickname, headimgurl, diamonds, integral, game_count, " +
+                        "win_count, sign_count, last_sign_date from nee_users where id = ?", queryParams, result -> {
+                    if (result.failed()) allFuture.completeExceptionally(result.cause());
+                    else {
+                        allFuture.complete(result.result().getRows());
+                    }
+                    connection.result().close();
+                });
+            }
+        });
+        allFuture.whenComplete((res, ex) -> {
+            if (ex != null) {
+                routingContext.response()/*.putHeader("content-type", "application/json; charset=utf-8")*/
+                        .end(A0Json.encode(new Result.Builder().setCode(ErrorCodeEnum.SYSTEM_ERROR.getCode() + "")
+                                .setMessage(ErrorCodeEnum.SYSTEM_ERROR.getMessage()).build()));
+            } else {
+                routingContext.response()/*.putHeader("content-type", "application/json; charset=utf-8")*/
+                        .end(A0Json.encode(new Result.Builder().setData(res).build()));
+            }
+        });
+
+
     }
 }

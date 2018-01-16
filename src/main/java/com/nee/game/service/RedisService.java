@@ -103,4 +103,14 @@ class RedisService{
         });
     }
 
+    Long del(final String key) {
+        return redisTemplate.execute(new RedisCallback<Long>() {
+            @Override
+            public Long doInRedis(RedisConnection connection) throws DataAccessException {
+                RedisSerializer<String> serializer = redisTemplate.getStringSerializer();
+                return connection.del(serializer.serialize(key));
+            }
+        });
+    }
+
 }

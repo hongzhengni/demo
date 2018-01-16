@@ -18,7 +18,6 @@ public class CardService {
     @Autowired
     private RedisService redisService;
 
-
     public void initCard(int tableId) {
 
         Byte[] cards = new Byte[136];
@@ -33,6 +32,9 @@ public class CardService {
 
         Collections.shuffle(pokes);
         System.out.println("init table " + tableId + " pokes: ---->" + pokes.toString());
+
+        redisService.del(prex + tableId);
+
         pokes.forEach(poke -> {
             redisService.lpush(prex + tableId, poke);
 
